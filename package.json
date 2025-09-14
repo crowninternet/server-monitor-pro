@@ -1,0 +1,28 @@
+{
+  "name": "uptime-monitor-pro",
+  "version": "1.0.0",
+  "description": "Advanced server monitoring with SMS alerts",
+  "main": "uptime-monitor-api.js",
+  "scripts": {
+    "start": "node uptime-monitor-api.js",
+    "dev": "nodemon uptime-monitor-api.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "twilio": "^4.15.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  },
+  "keywords": [
+    "uptime",
+    "monitoring",
+    "sms",
+    "alerts",
+    "server",
+    "twilio"
+  ],
+  "author": "Your Name",
+  "license": "MIT"
+}
