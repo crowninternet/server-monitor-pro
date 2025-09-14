@@ -75,6 +75,10 @@
             background: #e3f2fd;
             border-left: 4px solid #2196f3;
         }
+        .sync-section {
+            background: #f0f9ff;
+            border-left: 4px solid #0ea5e9;
+        }
     </style>
 </head>
 <body>
@@ -114,9 +118,10 @@
             <div id="uploadResult"></div>
         </div>
 
-        <div class="section">
-            <h2>Current Servers</h2>
-            <button onclick="loadCurrentServers()">Refresh Server List</button>
+        <div class="section sync-section">
+            <h2>🔄 Sync & Refresh</h2>
+            <p>Refresh the server list and sync localStorage with current API data:</p>
+            <button onclick="loadCurrentServers()">🔄 Refresh Server List & Sync localStorage</button>
             <div id="currentServers"></div>
         </div>
     </div>
@@ -367,14 +372,19 @@
 
         async function loadCurrentServers() {
             const resultDiv = document.getElementById('currentServers');
-            resultDiv.innerHTML = '<p>Loading current servers...</p>';
+            resultDiv.innerHTML = '<p>Loading current servers and syncing localStorage...</p>';
 
             try {
                 const response = await fetch('http://localhost:3000/api/servers');
                 const data = await response.json();
 
                 if (data.success && data.servers.length > 0) {
-                    let html = '<h3>Current Servers:</h3>';
+                    // Sync localStorage with current API data
+                    localStorage.setItem('uptimeServers', JSON.stringify(data.servers));
+                    
+                    let html = `<h3>Current Servers (${data.servers.length} servers):</h3>`;
+                    html += '<div class="success" style="margin-bottom: 15px;">✅ localStorage synced with current server data</div>';
+                    
                     data.servers.forEach(server => {
                         html += `
                             <div class="server-item">
@@ -385,12 +395,15 @@
                     });
                     resultDiv.innerHTML = html;
                 } else {
-                    resultDiv.innerHTML = '<p>No servers currently configured.</p>';
+                    // Clear localStorage if no servers
+                    localStorage.removeItem('uptimeServers');
+                    resultDiv.innerHTML = '<p>No servers currently configured. localStorage cleared.</p>';
                 }
             } catch (error) {
                 resultDiv.innerHTML = `
                     <div class="error">
                         ❌ Error loading servers: ${error.message}
+                        <br><small>localStorage was not updated due to API error.</small>
                     </div>
                 `;
             }
