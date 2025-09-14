@@ -1,5 +1,5 @@
 // Node.js Backend API for Uptime Monitor Pro
-// Version 1.0.0
+// Version 1.1.0 - Added FTP Upload Support
 // Run with: node uptime-monitor-api.js
 
 const express = require('express');
@@ -7,6 +7,7 @@ const cors = require('cors');
 const twilio = require('twilio');
 const path = require('path');
 const fs = require('fs');
+const ftp = require('ftp');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -68,6 +69,392 @@ const writeConfig = (config) => {
         console.error('Error writing config:', error);
         return false;
     }
+};
+
+// FTP Upload functionality
+const uploadToFTP = async (config) => {
+    if (!config.ftpEnabled || !config.ftpHost || !config.ftpUser || !config.ftpPassword) {
+        return { success: false, error: 'FTP not configured' };
+    }
+
+    // Generate public HTML page
+    const servers = readServers();
+    const publicHTML = generatePublicHTML(servers);
+    const remotePath = config.ftpRemotePath || 'index.html';
+    
+    // Use standard FTP only
+    return new Promise((resolve, reject) => {
+        const client = new ftp();
+        
+        client.on('ready', () => {
+            console.log('📤 FTP connection established');
+            
+            // Upload the HTML file
+            client.put(Buffer.from(publicHTML), remotePath, (err) => {
+                if (err) {
+                    console.error('FTP upload error:', err);
+                    client.end();
+                    reject({ success: false, error: err.message || 'FTP upload failed' });
+                } else {
+                    console.log('✅ Public page uploaded successfully via FTP');
+                    client.end();
+                    resolve({ success: true, message: 'Public page uploaded successfully via FTP' });
+                }
+            });
+        });
+        
+        client.on('error', (err) => {
+            console.error('FTP connection error:', err);
+            reject({ success: false, error: err.message || 'FTP connection failed' });
+        });
+        
+        // Connect to FTP server
+        client.connect({
+            host: config.ftpHost,
+            user: config.ftpUser,
+            password: config.ftpPassword,
+            port: config.ftpPort || 21,
+            secure: false
+        });
+    });
+};
+
+// Generate public HTML page
+const generatePublicHTML = (servers) => {
+    const currentTime = new Date().toLocaleString();
+    const totalServers = servers.length;
+    const activeServers = servers.filter(s => !s.stopped).length;
+    const upServers = servers.filter(s => s.status === 'up').length;
+    const downServers = servers.filter(s => s.status === 'down').length;
+    const warningServers = servers.filter(s => s.status === 'warning').length;
+    
+    return `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Server Status Dashboard</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #6366f1;
+            --secondary: #8b5cf6;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --dark: #1f2937;
+            --light: #f9fafb;
+            --gray: #6b7280;
+            --border: #e5e7eb;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            --gradient: linear-gradient(135deg, var(--primary), var(--secondary));
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--dark);
+            color: white;
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 30px 0;
+            background: var(--gradient);
+            border-radius: 20px;
+            box-shadow: var(--shadow);
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 10px;
+            background: linear-gradient(45deg, #fff, #e0e7ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .header p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+            margin-bottom: 10px;
+        }
+
+        .last-updated {
+            font-size: 0.9rem;
+            opacity: 0.7;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 15px;
+            padding: 25px;
+            text-align: center;
+            box-shadow: var(--shadow);
+        }
+
+        .stat-value {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+
+        .stat-label {
+            font-size: 1rem;
+            opacity: 0.8;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .stat-total { color: var(--primary); }
+        .stat-active { color: var(--success); }
+        .stat-up { color: var(--success); }
+        .stat-down { color: var(--danger); }
+        .stat-warning { color: var(--warning); }
+
+        .servers-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 20px;
+        }
+
+        .server-card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 15px;
+            padding: 20px;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .server-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+        }
+
+        .status-indicator {
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 12px;
+            height: 100%;
+        }
+
+        .status-up { background: var(--success); }
+        .status-warning { background: var(--warning); }
+        .status-down { background: var(--danger); }
+        .status-stopped { background: var(--gray); }
+
+        .server-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .server-name {
+            font-weight: 700;
+            font-size: 1.1rem;
+        }
+
+        .server-type {
+            background: #374151;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: 500;
+            color: white;
+            border: 1px solid #4b5563;
+        }
+
+        .server-url {
+            color: var(--gray);
+            font-size: 0.9rem;
+            margin-bottom: 15px;
+            word-break: break-all;
+        }
+
+        .server-stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .stat {
+            text-align: center;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+        }
+
+        .stat-value {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        .stat-label {
+            font-size: 0.8rem;
+            color: var(--gray);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .status-chart {
+            display: flex;
+            gap: 2px;
+            margin: 10px 0;
+            align-items: end;
+        }
+
+        .status-bar {
+            width: 8px;
+            height: 12px;
+            border-radius: 2px;
+            background: var(--gray);
+        }
+
+        .status-bar.up { background: var(--success); }
+        .status-bar.warning { background: var(--warning); }
+        .status-bar.down { background: var(--danger); }
+        .status-bar.pending { background: var(--gray); }
+
+        .last-check {
+            font-size: 0.8rem;
+            color: var(--gray);
+            margin-top: 10px;
+        }
+
+        @media (max-width: 768px) {
+            .header h1 { font-size: 2rem; }
+            .stats-grid { display: none; }
+            .servers-grid { grid-template-columns: 1fr; }
+            .container { padding: 10px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1><i class="fas fa-server"></i> Server Status Dashboard</h1>
+            <p>Real-time monitoring of all servers</p>
+            <div class="last-updated">Last updated: ${currentTime}</div>
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-value stat-total">${totalServers}</div>
+                <div class="stat-label">Total Servers</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value stat-active">${activeServers}</div>
+                <div class="stat-label">Active</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value stat-up">${upServers}</div>
+                <div class="stat-label">Online</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value stat-warning">${warningServers}</div>
+                <div class="stat-label">Warning</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value stat-down">${downServers}</div>
+                <div class="stat-label">Offline</div>
+            </div>
+        </div>
+
+        <div class="servers-grid">
+            ${servers.map(server => `
+                <div class="server-card">
+                    <div class="status-indicator status-${server.status}"></div>
+                    <div class="server-header">
+                        <div class="server-name">${server.name}</div>
+                        <div class="server-type">${server.type.toUpperCase()}</div>
+                    </div>
+                    <div class="server-url">${server.url}</div>
+                    <div class="status-chart">
+                        ${generateStatusChart(server)}
+                    </div>
+                    <div class="server-stats">
+                        <div class="stat">
+                            <div class="stat-value">${server.uptime}%</div>
+                            <div class="stat-label">Uptime</div>
+                        </div>
+                        <div class="stat">
+                            <div class="stat-value">${server.responseTime}ms</div>
+                            <div class="stat-label">Response</div>
+                        </div>
+                    </div>
+                    <div class="last-check">
+                        Last check: ${server.lastCheck ? new Date(server.lastCheck).toLocaleString() : 'Never'}
+                    </div>
+                </div>
+            `).join('')}
+        </div>
+    </div>
+</body>
+</html>`;
+};
+
+// Generate status chart for public page
+const generateStatusChart = (server) => {
+    if (!server.testHistory) server.testHistory = [];
+    
+    let chart = '';
+    const maxBars = 15;
+    const totalTests = server.testHistory.length;
+    
+    if (totalTests === 0) {
+        for (let i = 0; i < maxBars; i++) {
+            chart += `<div class="status-bar pending"></div>`;
+        }
+    } else if (totalTests <= maxBars) {
+        const missingTests = maxBars - totalTests;
+        for (let i = 0; i < missingTests; i++) {
+            chart += `<div class="status-bar pending"></div>`;
+        }
+        for (let i = 0; i < totalTests; i++) {
+            const status = server.testHistory[i];
+            chart += `<div class="status-bar ${status}"></div>`;
+        }
+    } else {
+        const recentTests = server.testHistory.slice(-maxBars);
+        for (let i = 0; i < maxBars; i++) {
+            const status = recentTests[i];
+            chart += `<div class="status-bar ${status}"></div>`;
+        }
+    }
+    
+    return chart;
 };
 
 // Middleware
@@ -218,6 +605,33 @@ app.delete('/api/servers/:id', (req, res) => {
     }
 });
 
+// Reorder servers endpoint
+app.post('/api/servers/reorder', (req, res) => {
+    try {
+        const { order } = req.body;
+        
+        if (!Array.isArray(order)) {
+            return res.status(400).json({ 
+                success: false, 
+                error: 'Order must be an array of server IDs' 
+            });
+        }
+        
+        const servers = readServers();
+        const reorderedServers = order.map(id => 
+            servers.find(server => server.id === id)
+        ).filter(Boolean);
+        
+        if (writeServers(reorderedServers)) {
+            res.json({ success: true, message: 'Server order updated successfully' });
+        } else {
+            res.status(500).json({ success: false, error: 'Failed to save server order' });
+        }
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
 // Configuration endpoints
 app.get('/api/config', (req, res) => {
     try {
@@ -225,7 +639,8 @@ app.get('/api/config', (req, res) => {
         // Return config without sensitive Twilio credentials
         const safeConfig = {
             smsEnabled: config.smsEnabled || false,
-            // Don't return Twilio credentials to frontend
+            ftpEnabled: config.ftpEnabled || false,
+            // Don't return sensitive credentials to frontend
         };
         res.json({ success: true, config: safeConfig });
     } catch (error) {
@@ -241,6 +656,7 @@ app.post('/api/config', (req, res) => {
             // Return safe config without credentials
             const safeConfig = {
                 smsEnabled: config.smsEnabled || false,
+                ftpEnabled: config.ftpEnabled || false,
             };
             res.json({ success: true, config: safeConfig });
         } else {
@@ -280,6 +696,89 @@ app.post('/api/twilio-config', (req, res) => {
         }
     } catch (error) {
         res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// FTP configuration endpoint (server-side only)
+app.post('/api/ftp-config', (req, res) => {
+    try {
+        const { ftpHost, ftpUser, ftpPassword, ftpPort, ftpRemotePath, ftpEnabled } = req.body;
+        
+        if (!ftpHost || !ftpUser || !ftpPassword) {
+            return res.status(400).json({ 
+                success: false, 
+                error: 'Missing required FTP parameters' 
+            });
+        }
+
+        const config = readConfig();
+        config.ftpHost = ftpHost;
+        config.ftpUser = ftpUser;
+        config.ftpPassword = ftpPassword;
+        config.ftpPort = ftpPort || 21;
+        config.ftpRemotePath = ftpRemotePath || 'index.html';
+        config.ftpEnabled = ftpEnabled || false;
+        
+        if (writeConfig(config)) {
+            res.json({ 
+                success: true, 
+                message: 'FTP configuration saved successfully' 
+            });
+        } else {
+            res.status(500).json({ success: false, error: 'Failed to save FTP configuration' });
+        }
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// Get FTP configuration endpoint (server-side only)
+app.get('/api/ftp-config', (req, res) => {
+    try {
+        const config = readConfig();
+        
+        // Return FTP config with masked password
+        const ftpConfig = {
+            ftpHost: config.ftpHost || '',
+            ftpUser: config.ftpUser || '',
+            ftpPassword: config.ftpPassword ? '••••••••••••••••••••••••••••' + config.ftpPassword.slice(-4) : '',
+            ftpPort: config.ftpPort || 21,
+            ftpRemotePath: config.ftpRemotePath || 'index.html',
+            ftpEnabled: config.ftpEnabled || false
+        };
+        
+        res.json({ success: true, config: ftpConfig });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// Manual FTP upload endpoint
+app.post('/api/upload-ftp', async (req, res) => {
+    try {
+        const config = readConfig();
+        const result = await uploadToFTP(config);
+        res.json(result);
+    } catch (error) {
+        console.error('FTP upload endpoint error:', error);
+        let errorMessage = 'Unknown FTP upload error';
+        
+        if (error && typeof error === 'object') {
+            if (error.error) {
+                errorMessage = error.error;
+            } else if (error.message) {
+                errorMessage = error.message;
+            } else if (error.code) {
+                errorMessage = `FTP Error: ${error.code}`;
+            }
+        } else if (typeof error === 'string') {
+            errorMessage = error;
+        }
+        
+        res.status(500).json({ 
+            success: false, 
+            error: errorMessage
+        });
     }
 });
 
@@ -323,6 +822,65 @@ app.post('/api/test-sms', async (req, res) => {
     }
 });
 
+// Server-side URL check endpoint (bypasses CORS)
+app.get('/api/check-url', async (req, res) => {
+    try {
+        const { url } = req.query;
+        if (!url) {
+            return res.status(400).json({ success: false, error: 'URL parameter required' });
+        }
+
+        const axios = require('axios');
+        const startTime = Date.now();
+        
+        try {
+            const response = await axios.get(url, {
+                timeout: 10000,
+                validateStatus: () => true // Don't throw on any status code
+            });
+            
+            const responseTime = Date.now() - startTime;
+            const isCloudflareError = response.status === 502 || response.status === 503 || response.status === 504;
+            
+            // Check for "Bad gateway" text in response content (case-insensitive)
+            const responseText = response.data ? response.data.toString().toLowerCase() : '';
+            const hasBadGatewayText = responseText.includes('bad gateway');
+            
+            // Combine status code and text-based detection for gateway errors
+            const isGatewayError = isCloudflareError || hasBadGatewayText;
+            
+            res.json({
+                success: true,
+                status: response.status,
+                responseTime: responseTime,
+                isCloudflareError: isCloudflareError,
+                hasBadGatewayText: hasBadGatewayText,
+                isGatewayError: isGatewayError,
+                isUp: response.status >= 200 && response.status < 300 && !isGatewayError,
+                isFailure: response.status < 200 || response.status >= 300 || isGatewayError
+            });
+            
+        } catch (error) {
+            const responseTime = Date.now() - startTime;
+            res.json({
+                success: true,
+                status: 0,
+                responseTime: responseTime,
+                isCloudflareError: false,
+                hasBadGatewayText: false,
+                isGatewayError: false,
+                isUp: false,
+                isFailure: true, // Treat network errors as failures
+                error: error.message
+            });
+        }
+        
+    } catch (error) {
+        console.error('URL check error:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
 // Health check endpoint
 app.get('/api/health', (req, res) => {
     res.json({ status: 'OK', timestamp: new Date().toISOString() });
@@ -337,7 +895,26 @@ app.get('/', (req, res) => {
 app.listen(PORT, () => {
     console.log(`🚀 Uptime Monitor Pro API running on http://localhost:${PORT}`);
     console.log(`📱 SMS endpoint: http://localhost:${PORT}/api/send-sms`);
+    console.log(`📤 FTP upload endpoint: http://localhost:${PORT}/api/upload-ftp`);
     console.log(`💚 Health check: http://localhost:${PORT}/api/health`);
+    
+    // Start automatic FTP upload every 5 minutes
+    const config = readConfig();
+    if (config.ftpEnabled) {
+        console.log('📤 Starting automatic FTP upload every 5 minutes');
+        setInterval(async () => {
+            try {
+                const result = await uploadToFTP(config);
+                if (result.success) {
+                    console.log('✅ Automatic FTP upload successful');
+                } else {
+                    console.log('❌ Automatic FTP upload failed:', result.error);
+                }
+            } catch (error) {
+                console.error('❌ Automatic FTP upload error:', error);
+            }
+        }, 5 * 60 * 1000); // 5 minutes
+    }
 });
 
 module.exports = app;
