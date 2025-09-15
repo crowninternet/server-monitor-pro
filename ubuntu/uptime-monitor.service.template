@@ -1,0 +1,47 @@
+[Unit]
+# Service Description
+Description=Uptime Monitor Pro
+Documentation=https://github.com/crowninternet/server-monitor-pro
+After=network.target
+
+[Service]
+# Service Type
+Type=simple
+
+# User and Group - Replace with actual system user
+User=uptime-monitor
+Group=uptime-monitor
+
+# Working Directory - Replace with actual installation path
+WorkingDirectory=/opt/uptime-monitor
+
+# Executable Command - Replace with actual Node.js path and script path
+ExecStart=/usr/bin/node /opt/uptime-monitor/uptime-monitor-api.js
+
+# Restart Policy
+Restart=always
+RestartSec=10
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=uptime-monitor
+
+# Security Settings
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+# Allow write access only to the installation directory
+ReadWritePaths=/opt/uptime-monitor
+
+# Resource Limits
+LimitNOFILE=65536
+LimitNPROC=4096
+
+# Environment Variables (optional)
+Environment=NODE_ENV=production
+
+[Install]
+# Enable on multi-user target (normal boot)
+WantedBy=multi-user.target

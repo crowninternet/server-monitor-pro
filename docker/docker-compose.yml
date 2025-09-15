@@ -1,0 +1,71 @@
+version: '3.8'
+
+services:
+  uptime-monitor:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: uptime-monitor-pro
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    volumes:
+      # Persistent data storage
+      - uptime_data:/app/secure-data
+      # Optional: Mount logs directory
+      - uptime_logs:/app/logs
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+    networks:
+      - uptime-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    labels:
+      - "com.uptimemonitor.description=Uptime Monitor Pro"
+      - "com.uptimemonitor.version=1.0.0"
+      - "traefik.enable=true"
+      - "traefik.http.routers.uptime-monitor.rule=Host(`uptime.yourdomain.com`)"
+      - "traefik.http.routers.uptime-monitor.tls=true"
+      - "traefik.http.routers.uptime-monitor.tls.certresolver=letsencrypt"
+
+  # Optional: Nginx reverse proxy for production deployments
+  nginx:
+    image: nginx:alpine
+    container_name: uptime-monitor-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - uptime-monitor
+    networks:
+      - uptime-network
+    profiles:
+      - production
+
+volumes:
+  uptime_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./data
+  uptime_logs:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./logs
+
+networks:
+  uptime-network:
+    driver: bridge
+    name: uptime-monitor-network
