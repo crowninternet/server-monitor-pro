@@ -639,6 +639,7 @@
                     <h3>Settings</h3>
                     <div style="display: flex; flex-direction: column; gap: 10px;">
                         <button class="btn btn-primary" onclick="openTwilioModal()"><i class="fas fa-sms"></i> SMS Settings</button>
+                        <button class="btn btn-primary" onclick="openEmailModal()"><i class="fas fa-envelope"></i> Email Settings</button>
                         <button class="btn btn-primary" onclick="openFtpModal()"><i class="fas fa-upload"></i> FTP Settings</button>
                         <button class="btn btn-primary" onclick="openRecoveryTool()"><i class="fas fa-tools"></i> Recovery</button>
                     </div>
@@ -751,6 +752,48 @@
         </div>
     </div>
 
+    <!-- Email Configuration Modal -->
+    <div id="emailModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>SendGrid Email Configuration</h3>
+                <span class="close" onclick="closeEmailModal()">&times;</span>
+            </div>
+            <div id="emailStatus" class="email-status" style="background: var(--warning); color: white; padding: 10px; border-radius: 5px; margin-bottom: 20px; text-align: center;">
+                <i class="fas fa-exclamation-triangle"></i> Email is not configured
+            </div>
+            <div style="background: var(--gray); color: white; padding: 8px; border-radius: 3px; margin-bottom: 15px; font-size: 0.9rem; text-align: center;">
+                <i class="fas fa-shield-alt"></i> Credentials are stored securely server-side
+            </div>
+            <div class="form-group">
+                <label for="modalSendgridApiKey">SendGrid API Key</label>
+                <input type="password" id="modalSendgridApiKey" placeholder="SG.xxxxxxxxxxxxxxxxxxxxxxxxxx">
+            </div>
+            <div class="form-group">
+                <label for="modalEmailFrom">From Email</label>
+                <input type="email" id="modalEmailFrom" placeholder="alerts@yourdomain.com">
+            </div>
+            <div class="form-group">
+                <label for="modalEmailTo">Alert Email</label>
+                <input type="email" id="modalEmailTo" placeholder="admin@yourdomain.com">
+            </div>
+            <div class="form-group">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <label for="modalEmailEnabled" style="margin: 0; color: white; font-weight: 500;">Email Alerts</label>
+                    <label class="toggle-switch" style="margin: 0;">
+                        <input type="checkbox" id="modalEmailEnabled">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+            </div>
+            <div style="display: flex; gap: 10px; margin-top: 20px;">
+                <button type="button" class="btn btn-primary" onclick="saveEmailConfigFromModal()">Save Configuration</button>
+                <button type="button" class="btn btn-secondary" onclick="testEmail()">Test Email</button>
+                <button type="button" class="btn btn-danger" onclick="closeEmailModal()">Cancel</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         // JavaScript Version 1.1.0 - File-based storage
         class UptimeMonitor {
@@ -772,8 +815,8 @@
                 this.setupDragAndDrop();
                 this.updateMonitorStatus();
                 
-                // Start countdown updates every second
-                setInterval(() => {
+                // Start countdown updates every second with debouncing
+                this.countdownUpdateInterval = setInterval(() => {
                     this.updateCountdowns();
                 }, 1000);
                 
@@ -949,11 +992,15 @@
                     console.log(`Other test for ${server.name}: Status = ${server.status}`);
                 }
                 
+                // Update lastCheck time immediately to prevent countdown issues
                 server.lastCheck = new Date().toISOString();
                 server.responseTime = responseTime;
                 server.totalChecks++;
                 if (success) server.successfulChecks++;
                 server.uptime = Math.round((server.successfulChecks / server.totalChecks) * 100);
+                
+                // Clear any countdown reset flags when check completes
+                server.countdownResetTime = null;
 
                 // Update test history (keep last 15 tests) - store actual status for HTTP/HTTPS
                 if (!server.testHistory) server.testHistory = [];
@@ -976,6 +1023,16 @@
                     if (wasDown && this.config.smsEnabled && !server.justEdited) {
                         await this.sendSmsAlert(`${server.name} is BACK ONLINE! URL: ${server.url}`);
                     }
+                    
+                    // Send Email alert when server comes back up (only if it was down)
+                    if (wasDown && this.config.emailEnabled && !server.justEdited) {
+                        await this.sendEmailAlert(
+                            `${server.name} is Back Online`,
+                            `Great news! ${server.name} is now responding normally and is back online.`,
+                            server.name,
+                            server.url
+                        );
+                    }
                 } else if (!success && server.status === 'down') {
                     this.showAlert(`${server.name} is down!`, 'error');
                     
@@ -984,13 +1041,25 @@
                         await this.sendSmsAlert(`${server.name} is DOWN! URL: ${server.url}`);
                         server.smsAlertSent = true; // Mark that SMS was sent
                     }
+                    
+                    // Send Email alert only when server first goes down (not on every check)
+                    if (this.config.emailEnabled && !server.emailAlertSent) {
+                        await this.sendEmailAlert(
+                            `${server.name} is Down`,
+                            `Alert! ${server.name} is not responding and appears to be down. Please investigate immediately.`,
+                            server.name,
+                            server.url
+                        );
+                        server.emailAlertSent = true; // Mark that email was sent
+                    }
                 } else if (server.status === 'warning') {
                     this.showAlert(`${server.name} is experiencing issues (${server.consecutiveFailures}/3 failures)`, 'warning');                                                                                                  
                 }
                 
-                // Reset SMS alert flag when server is up
+                // Reset SMS and Email alert flags when server is up
                 if (success && server.status === 'up') {
                     server.smsAlertSent = false;
+                    server.emailAlertSent = false;
                 }
 
                 // Save server updates via API
@@ -1202,8 +1271,47 @@
                 }
             }
 
+            async sendEmailAlert(subject, message, serverName, serverUrl) {
+                if (!this.config.emailEnabled) {
+                    console.log('Email alerts are disabled, skipping email notification');
+                    return;
+                }
+
+                try {
+                    const response = await fetch(`${this.apiBase}/api/send-email`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            subject: subject,
+                            message: message,
+                            serverName: serverName,
+                            serverUrl: serverUrl
+                        })
+                    });
+
+                    if (response.ok) {
+                        this.showAlert('Email alert sent!', 'success');
+                    } else {
+                        this.showAlert('Failed to send email alert', 'error');
+                    }
+                } catch (error) {
+                    console.error('Email send error:', error);
+                    this.showAlert('Email alert failed - check configuration', 'error');
+                }
+            }
+
             startMonitoring() {
                 this.monitoring = true;
+                
+                // Restart countdown updates if not already running
+                if (!this.countdownUpdateInterval) {
+                    this.countdownUpdateInterval = setInterval(() => {
+                        this.updateCountdowns();
+                    }, 1000);
+                }
+                
                 this.servers.forEach(server => {
                     // Only start monitoring for servers that aren't stopped
                     if (!server.stopped) {
@@ -1222,6 +1330,13 @@
                 this.monitoring = false;
                 Object.values(this.intervals).forEach(interval => clearInterval(interval));
                 this.intervals = {};
+                
+                // Clear countdown update interval
+                if (this.countdownUpdateInterval) {
+                    clearInterval(this.countdownUpdateInterval);
+                    this.countdownUpdateInterval = null;
+                }
+                
                 this.updateMonitorStatus();
             }
 
@@ -1558,12 +1673,18 @@
                     
                     if (timeLeft <= 1000) { // Within 1 second, show "Now"
                         countdownElement.textContent = 'Now';
-                        // If we've been showing "Now" for too long, reset the lastCheck time
+                        
+                        // Enhanced reset logic for stuck countdowns
                         if (!server.countdownResetTime) {
                             server.countdownResetTime = Date.now();
-                        } else if (Date.now() - server.countdownResetTime > 5000) {
-                            // Reset if stuck on "Now" for more than 5 seconds
-                            console.log(`Resetting countdown for ${server.name} - stuck on "Now"`);
+                        } else if (Date.now() - server.countdownResetTime > 3000) {
+                            // Reset if stuck on "Now" for more than 3 seconds (reduced from 5)
+                            console.log(`Resetting countdown for ${server.name} - stuck on "Now" for ${Date.now() - server.countdownResetTime}ms`);
+                            
+                            // Force a server check to reset the countdown properly
+                            this.checkServer(server);
+                            
+                            // Reset the countdown timer
                             server.lastCheck = new Date(Date.now() - (server.interval * 1000)).toISOString();
                             server.countdownResetTime = null;
                             this.updateServer(server);
@@ -1984,15 +2105,117 @@
             }
         }
 
+        // Email Configuration Functions
+        async function saveEmailConfigFromModal() {
+            const emailEnabled = document.getElementById('modalEmailEnabled').checked;
+            
+            try {
+                const response = await fetch(`${monitor.apiBase}/api/email-config`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        sendgridApiKey: document.getElementById('modalSendgridApiKey').value,
+                        emailFrom: document.getElementById('modalEmailFrom').value,
+                        emailTo: document.getElementById('modalEmailTo').value,
+                        emailEnabled: emailEnabled
+                    })
+                });
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    monitor.config.emailEnabled = emailEnabled;
+                    monitor.showAlert('Email configuration saved!', 'success');
+                    closeEmailModal();
+                } else {
+                    monitor.showAlert('Failed to save email configuration: ' + data.error, 'error');
+                }
+            } catch (error) {
+                console.error('Error saving email config:', error);
+                monitor.showAlert('Error saving email configuration. Check console for details.', 'error');
+            }
+        }
+
+        async function openEmailModal() {
+            // Fetch latest email config from server
+            try {
+                const response = await fetch(`${monitor.apiBase}/api/email-config`);
+                const data = await response.json();
+                if (data.success) {
+                    const emailConfig = data.config;
+                    
+                    // Populate modal with current email configuration
+                    document.getElementById('modalSendgridApiKey').value = emailConfig.sendgridApiKey || '';
+                    document.getElementById('modalEmailFrom').value = emailConfig.emailFrom || '';
+                    document.getElementById('modalEmailTo').value = emailConfig.emailTo || '';
+                    document.getElementById('modalEmailEnabled').checked = emailConfig.emailEnabled || false;
+                }
+            } catch (error) {
+                console.error('Error fetching email config:', error);
+            }
+
+            // Update status indicator
+            const statusElement = document.getElementById('emailStatus');
+            if (monitor.config.emailEnabled) {
+                statusElement.innerHTML = '<i class="fas fa-check-circle"></i> Email is configured and enabled!';
+                statusElement.style.background = 'var(--success)';
+            } else {
+                statusElement.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Email is not configured';
+                statusElement.style.background = 'var(--warning)';
+            }
+
+            document.getElementById('emailModal').style.display = 'block';
+        }
+
+        function closeEmailModal() {
+            document.getElementById('emailModal').style.display = 'none';
+        }
+
+        async function testEmail() {
+            if (!monitor.config.emailEnabled) {
+                alert('Email alerts are not enabled. Please enable email alerts first.');
+                return;
+            }
+            
+            if (!confirm('Send test email?')) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${monitor.apiBase}/api/test-email`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert('✅ Test email sent successfully!\n\nCheck your inbox for the message.');
+                } else {
+                    alert('❌ Failed to send test email:\n' + data.error);
+                }
+            } catch (error) {
+                alert('❌ Error sending test email:\n' + error.message);
+            }
+        }
+
         // Close modal when clicking outside of it
         window.onclick = function(event) {
             const twilioModal = document.getElementById('twilioModal');
             const ftpModal = document.getElementById('ftpModal');
+            const emailModal = document.getElementById('emailModal');
             if (event.target === twilioModal) {
                 closeTwilioModal();
             }
             if (event.target === ftpModal) {
                 closeFtpModal();
+            }
+            if (event.target === emailModal) {
+                closeEmailModal();
             }
         }
 

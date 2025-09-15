@@ -1,10 +1,11 @@
 // Node.js Backend API for Uptime Monitor Pro
-// Version 1.1.0 - Added FTP Upload Support
+// Version 1.2.0 - Added Email Support with SendGrid
 // Run with: node uptime-monitor-api.js
 
 const express = require('express');
 const cors = require('cors');
 const twilio = require('twilio');
+const sgMail = require('@sendgrid/mail');
 const path = require('path');
 const fs = require('fs');
 const ftp = require('ftp');
@@ -71,8 +72,8 @@ const writeConfig = (config) => {
     }
 };
 
-// FTP Upload functionality
-const uploadToFTP = async (config) => {
+// FTP Upload functionality with retry logic
+const uploadToFTP = async (config, retryCount = 0) => {
     if (!config.ftpEnabled || !config.ftpHost || !config.ftpUser || !config.ftpPassword) {
         return { success: false, error: 'FTP not configured' };
     }
@@ -81,11 +82,13 @@ const uploadToFTP = async (config) => {
     const servers = readServers();
     const publicHTML = generatePublicHTML(servers);
     const remotePath = config.ftpRemotePath || 'index.html';
+    const maxRetries = 3;
     
     // Use standard FTP only
     return new Promise((resolve, reject) => {
         const client = new ftp();
         
+        // Set connection timeout
         client.on('ready', () => {
             console.log('📤 FTP connection established');
             
@@ -94,7 +97,18 @@ const uploadToFTP = async (config) => {
                 if (err) {
                     console.error('FTP upload error:', err);
                     client.end();
-                    reject({ success: false, error: err.message || 'FTP upload failed' });
+                    
+                    // Retry logic for upload failures
+                    if (retryCount < maxRetries) {
+                        console.log(`🔄 Retrying FTP upload (attempt ${retryCount + 1}/${maxRetries})`);
+                        setTimeout(() => {
+                            uploadToFTP(config, retryCount + 1)
+                                .then(resolve)
+                                .catch(reject);
+                        }, 2000 * (retryCount + 1)); // Exponential backoff
+                    } else {
+                        reject({ success: false, error: err.message || 'FTP upload failed after retries' });
+                    }
                 } else {
                     console.log('✅ Public page uploaded successfully via FTP');
                     client.end();
@@ -105,16 +119,31 @@ const uploadToFTP = async (config) => {
         
         client.on('error', (err) => {
             console.error('FTP connection error:', err);
-            reject({ success: false, error: err.message || 'FTP connection failed' });
+            client.end();
+            
+            // Retry logic for connection failures
+            if (retryCount < maxRetries) {
+                console.log(`🔄 Retrying FTP connection (attempt ${retryCount + 1}/${maxRetries})`);
+                setTimeout(() => {
+                    uploadToFTP(config, retryCount + 1)
+                        .then(resolve)
+                        .catch(reject);
+                }, 2000 * (retryCount + 1)); // Exponential backoff
+            } else {
+                reject({ success: false, error: err.message || 'FTP connection failed after retries' });
+            }
         });
         
-        // Connect to FTP server
+        // Connect to FTP server with timeout
         client.connect({
             host: config.ftpHost,
             user: config.ftpUser,
             password: config.ftpPassword,
             port: config.ftpPort || 21,
-            secure: false
+            secure: false,
+            connTimeout: 10000, // 10 second connection timeout
+            pasvTimeout: 10000, // 10 second passive timeout
+            keepalive: 10000    // 10 second keepalive
         });
     });
 };
@@ -902,18 +931,195 @@ app.listen(PORT, () => {
     const config = readConfig();
     if (config.ftpEnabled) {
         console.log('📤 Starting automatic FTP upload every 5 minutes');
-        setInterval(async () => {
+        
+        // Initial upload
+        setTimeout(async () => {
             try {
+                console.log('📤 Performing initial FTP upload...');
                 const result = await uploadToFTP(config);
                 if (result.success) {
-                    console.log('✅ Automatic FTP upload successful');
+                    console.log('✅ Initial FTP upload successful');
                 } else {
-                    console.log('❌ Automatic FTP upload failed:', result.error);
+                    console.log('❌ Initial FTP upload failed:', result.error);
                 }
             } catch (error) {
-                console.error('❌ Automatic FTP upload error:', error);
+                console.error('❌ Initial FTP upload error:', error);
+            }
+        }, 5000); // Wait 5 seconds after startup
+        
+        // Regular interval uploads
+        setInterval(async () => {
+            try {
+                console.log('📤 Starting scheduled FTP upload...');
+                const result = await uploadToFTP(config);
+                if (result.success) {
+                    console.log('✅ Scheduled FTP upload successful');
+                } else {
+                    console.log('❌ Scheduled FTP upload failed:', result.error);
+                }
+            } catch (error) {
+                console.error('❌ Scheduled FTP upload error:', error);
             }
         }, 5 * 60 * 1000); // 5 minutes
+    } else {
+        console.log('📤 FTP upload disabled - enable in configuration to start automatic uploads');
+    }
+});
+
+// Email functionality using SendGrid
+const sendEmailAlert = async (config, subject, message, serverName, serverUrl) => {
+    if (!config.emailEnabled || !config.sendgridApiKey || !config.emailFrom || !config.emailTo) {
+        return { success: false, error: 'Email not configured' };
+    }
+
+    try {
+        sgMail.setApiKey(config.sendgridApiKey);
+        
+        const msg = {
+            to: config.emailTo,
+            from: config.emailFrom,
+            subject: `[Uptime Monitor] ${subject}`,
+            html: `
+                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                    <h2 style="color: #333; border-bottom: 2px solid #6366f1; padding-bottom: 10px;">
+                        🚨 Uptime Monitor Alert
+                    </h2>
+                    <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                        <h3 style="color: #333; margin-top: 0;">${subject}</h3>
+                        <p style="font-size: 16px; line-height: 1.6; color: #555;">${message}</p>
+                        <div style="background: white; padding: 15px; border-radius: 5px; margin-top: 15px;">
+                            <strong>Server:</strong> ${serverName}<br>
+                            <strong>URL:</strong> <a href="${serverUrl}" style="color: #6366f1;">${serverUrl}</a><br>
+                            <strong>Time:</strong> ${new Date().toLocaleString()}
+                        </div>
+                    </div>
+                    <div style="text-align: center; color: #666; font-size: 12px; margin-top: 30px;">
+                        This alert was sent by Uptime Monitor Pro
+                    </div>
+                </div>
+            `,
+            text: `${subject}\n\n${message}\n\nServer: ${serverName}\nURL: ${serverUrl}\nTime: ${new Date().toLocaleString()}`
+        };
+
+        console.log(`📧 Sending email: "${subject}" to ${config.emailTo}`);
+        const result = await sgMail.send(msg);
+        
+        console.log(`✅ Email sent successfully`);
+        return { success: true, messageId: result[0].headers['x-message-id'] };
+        
+    } catch (error) {
+        console.error('Email send error:', error);
+        return { success: false, error: error.message || 'Failed to send email' };
+    }
+};
+
+// Email endpoints
+app.post('/api/send-email', async (req, res) => {
+    try {
+        const { subject, message, serverName, serverUrl } = req.body;
+        const config = readConfig();
+        
+        if (!subject || !message) {
+            return res.status(400).json({ error: 'Missing subject or message parameter' });
+        }
+
+        const result = await sendEmailAlert(config, subject, message, serverName || 'Unknown Server', serverUrl || '');
+        res.json(result);
+        
+    } catch (error) {
+        console.error('Email endpoint error:', error);
+        res.status(500).json({ 
+            success: false, 
+            error: error.message || 'Unknown email error'
+        });
+    }
+});
+
+app.post('/api/email-config', (req, res) => {
+    try {
+        const { sendgridApiKey, emailFrom, emailTo, emailEnabled } = req.body;
+        
+        if (!sendgridApiKey || !emailFrom || !emailTo) {
+            return res.status(400).json({ 
+                success: false, 
+                error: 'Missing required email parameters' 
+            });
+        }
+
+        const config = readConfig();
+        config.sendgridApiKey = sendgridApiKey;
+        config.emailFrom = emailFrom;
+        config.emailTo = emailTo;
+        config.emailEnabled = emailEnabled || false;
+        
+        if (writeConfig(config)) {
+            res.json({ 
+                success: true, 
+                message: 'Email configuration saved successfully' 
+            });
+        } else {
+            res.status(500).json({ success: false, error: 'Failed to save email configuration' });
+        }
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+app.get('/api/email-config', (req, res) => {
+    try {
+        const config = readConfig();
+        
+        const emailConfig = {
+            sendgridApiKey: config.sendgridApiKey ? '••••••••••••••••••••••••••••' + config.sendgridApiKey.slice(-4) : '',
+            emailFrom: config.emailFrom || '',
+            emailTo: config.emailTo || '',
+            emailEnabled: config.emailEnabled || false
+        };
+        
+        res.json({ success: true, config: emailConfig });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+app.post('/api/test-email', async (req, res) => {
+    try {
+        const config = readConfig();
+        
+        if (!config.sendgridApiKey || !config.emailFrom || !config.emailTo) {
+            return res.status(400).json({ 
+                success: false, 
+                error: 'Email not configured. Please set up email credentials first.' 
+            });
+        }
+
+        const result = await sendEmailAlert(
+            config, 
+            'Test Email from Uptime Monitor Pro', 
+            'This is a test email to verify your SendGrid configuration is working correctly. Your email alerts are now ready to use!',
+            'Test Server',
+            'https://example.com'
+        );
+
+        if (result.success) {
+            res.json({ 
+                success: true, 
+                messageId: result.messageId,
+                message: 'Test email sent successfully'
+            });
+        } else {
+            res.status(500).json({ 
+                success: false, 
+                error: result.error || 'Failed to send test email'
+            });
+        }
+        
+    } catch (error) {
+        console.error('Test email error:', error);
+        res.status(500).json({ 
+            success: false, 
+            error: error.message || 'Failed to send test email'
+        });
     }
 });
 
