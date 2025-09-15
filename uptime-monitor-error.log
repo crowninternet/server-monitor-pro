@@ -1,0 +1,27 @@
+FTP connection error: Error: Login authentication failed
+    at makeError (/Users/administrator/Documents/uptime-monitor/node_modules/ftp/lib/connection.js:1067:13)
+    at Parser.<anonymous> (/Users/administrator/Documents/uptime-monitor/node_modules/ftp/lib/connection.js:113:25)
+    at Parser.emit (node:events:508:28)
+    at Parser._write (/Users/administrator/Documents/uptime-monitor/node_modules/ftp/lib/parser.js:59:10)
+    at writeOrBuffer (node:internal/streams/writable:570:12)
+    at _write (node:internal/streams/writable:499:10)
+    at Writable.write (node:internal/streams/writable:508:10)
+    at Socket.ondata (/Users/administrator/Documents/uptime-monitor/node_modules/ftp/lib/connection.js:273:20)
+    at Socket.emit (node:events:508:28)
+    at addChunk (node:internal/streams/readable:559:12) {
+  code: 530
+}
+FTP upload endpoint error: { success: false, error: 'Login authentication failed' }
+FTP connection error: Error: Logout.
+    at makeError (/Users/administrator/Documents/uptime-monitor/node_modules/ftp/lib/connection.js:1067:13)
+    at Parser.<anonymous> (/Users/administrator/Documents/uptime-monitor/node_modules/ftp/lib/connection.js:115:28)
+    at Parser.emit (node:events:508:28)
+    at Parser._write (/Users/administrator/Documents/uptime-monitor/node_modules/ftp/lib/parser.js:59:10)
+    at writeOrBuffer (node:internal/streams/writable:570:12)
+    at _write (node:internal/streams/writable:499:10)
+    at Writable.write (node:internal/streams/writable:508:10)
+    at Socket.ondata (/Users/administrator/Documents/uptime-monitor/node_modules/ftp/lib/connection.js:273:20)
+    at Socket.emit (node:events:508:28)
+    at addChunk (node:internal/streams/readable:559:12) {
+  code: 425
+}

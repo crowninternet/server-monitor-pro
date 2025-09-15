@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Server Recovery Tool</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+        .section {
+            margin: 20px 0;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        button {
+            background: #6366f1;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #4f46e5;
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        .success {
+            background: #d4edda;
+            color: #155724;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        pre {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+        }
+        .server-item {
+            background: #f8f9fa;
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 5px;
+            border-left: 4px solid #6366f1;
+        }
+        .backup-section {
+            background: #e3f2fd;
+            border-left: 4px solid #2196f3;
+        }
+        .sync-section {
+            background: #f0f9ff;
+            border-left: 4px solid #0ea5e9;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 Server Recovery Tool</h1>
+        
+        <div class="section">
+            <h2>Step 1: Check localStorage</h2>
+            <p>Click the button below to check if your servers are stored in your browser's localStorage:</p>
+            <button onclick="checkLocalStorage()">Check localStorage</button>
+            <div id="localStorageResult"></div>
+        </div>
+
+        <div class="section">
+            <h2>Step 2: Restore Servers</h2>
+            <p>If servers were found in localStorage, click the button below to restore them:</p>
+            <button onclick="restoreServers()" id="restoreBtn" disabled>Restore Servers</button>
+            <div id="restoreResult"></div>
+        </div>
+
+        <div class="section">
+            <h2>Step 3: Manual Recovery</h2>
+            <p>If no servers were found, you can manually add them back. Here are some common server examples:</p>
+            <button onclick="addSampleServers()">Add Sample Servers</button>
+            <div id="sampleResult"></div>
+        </div>
+
+        <div class="section backup-section">
+            <h2>📁 Backup & Restore</h2>
+            <p>Download your current server configuration for local backup:</p>
+            <button onclick="downloadServerBackup()" id="downloadBtn">Download Server Backup</button>
+            <div id="backupResult"></div>
+            
+            <p style="margin-top: 20px;">Upload a previously saved server backup file:</p>
+            <input type="file" id="fileInput" accept=".json" style="margin: 10px 0;">
+            <button onclick="uploadServerBackup()" id="uploadBtn" disabled>Upload & Restore Backup</button>
+            <div id="uploadResult"></div>
+        </div>
+
+        <div class="section sync-section">
+            <h2>🔄 Sync & Refresh</h2>
+            <p>Refresh the server list and sync localStorage with current API data:</p>
+            <button onclick="loadCurrentServers()">🔄 Refresh Server List & Sync localStorage</button>
+            <div id="currentServers"></div>
+        </div>
+    </div>
+
+    <script>
+        let foundServers = null;
+
+        async function checkLocalStorage() {
+            const resultDiv = document.getElementById('localStorageResult');
+            
+            try {
+                const servers = JSON.parse(localStorage.getItem('uptimeServers') || '[]');
+                
+                if (servers.length > 0) {
+                    foundServers = servers;
+                    resultDiv.innerHTML = `
+                        <div class="success">
+                            ✅ Found ${servers.length} servers in localStorage!
+                            <pre>${JSON.stringify(servers, null, 2)}</pre>
+                        </div>
+                    `;
+                    document.getElementById('restoreBtn').disabled = false;
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="error">
+                            ❌ No servers found in localStorage
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="error">
+                        ❌ Error reading localStorage: ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        async function restoreServers() {
+            if (!foundServers) {
+                alert('No servers found to restore. Please check localStorage first.');
+                return;
+            }
+
+            const resultDiv = document.getElementById('restoreResult');
+            resultDiv.innerHTML = '<p>Restoring servers...</p>';
+
+            try {
+                // Add each server back to the API
+                for (const server of foundServers) {
+                    const response = await fetch('http://localhost:3000/api/servers', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            name: server.name,
+                            url: server.url,
+                            type: server.type,
+                            interval: server.interval
+                        })
+                    });
+
+                    const data = await response.json();
+                    if (!data.success) {
+                        throw new Error(`Failed to restore server ${server.name}: ${data.error}`);
+                    }
+                }
+
+                resultDiv.innerHTML = `
+                    <div class="success">
+                        ✅ Successfully restored ${foundServers.length} servers!
+                        <p><a href="http://localhost:3000" target="_blank">Go to Uptime Monitor</a></p>
+                    </div>
+                `;
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="error">
+                        ❌ Error restoring servers: ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        async function addSampleServers() {
+            const resultDiv = document.getElementById('sampleResult');
+            resultDiv.innerHTML = '<p>Adding sample servers...</p>';
+
+            const sampleServers = [
+                { name: 'Google', url: 'google.com', type: 'https', interval: 60 },
+                { name: 'GitHub', url: 'github.com', type: 'https', interval: 60 },
+                { name: 'Cloudflare DNS', url: '1.1.1.1', type: 'ping', interval: 30 }
+            ];
+
+            try {
+                for (const server of sampleServers) {
+                    const response = await fetch('http://localhost:3000/api/servers', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(server)
+                    });
+
+                    const data = await response.json();
+                    if (!data.success) {
+                        throw new Error(`Failed to add server ${server.name}: ${data.error}`);
+                    }
+                }
+
+                resultDiv.innerHTML = `
+                    <div class="success">
+                        ✅ Successfully added ${sampleServers.length} sample servers!
+                        <p><a href="http://localhost:3000" target="_blank">Go to Uptime Monitor</a></p>
+                    </div>
+                `;
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="error">
+                        ❌ Error adding sample servers: ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        async function downloadServerBackup() {
+            const resultDiv = document.getElementById('backupResult');
+            resultDiv.innerHTML = '<p>Preparing backup...</p>';
+
+            try {
+                const response = await fetch('http://localhost:3000/api/servers');
+                const data = await response.json();
+
+                if (data.success) {
+                    const servers = data.servers;
+                    
+                    // Create backup object with metadata
+                    const backup = {
+                        version: '1.0',
+                        timestamp: new Date().toISOString(),
+                        servers: servers,
+                        totalServers: servers.length
+                    };
+
+                    // Create and download file
+                    const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `uptime-monitor-backup-${new Date().toISOString().split('T')[0]}.json`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+
+                    resultDiv.innerHTML = `
+                        <div class="success">
+                            ✅ Backup downloaded successfully!
+                            <p><strong>File:</strong> ${a.download}</p>
+                            <p><strong>Servers:</strong> ${servers.length}</p>
+                            <p><strong>Timestamp:</strong> ${new Date().toLocaleString()}</p>
+                        </div>
+                    `;
+                } else {
+                    throw new Error(data.error || 'Failed to fetch servers');
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="error">
+                        ❌ Error creating backup: ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        async function uploadServerBackup() {
+            const fileInput = document.getElementById('fileInput');
+            const resultDiv = document.getElementById('uploadResult');
+            
+            if (!fileInput.files[0]) {
+                alert('Please select a backup file first.');
+                return;
+            }
+
+            resultDiv.innerHTML = '<p>Processing backup file...</p>';
+
+            try {
+                const file = fileInput.files[0];
+                const text = await file.text();
+                const backup = JSON.parse(text);
+
+                // Validate backup format
+                if (!backup.servers || !Array.isArray(backup.servers)) {
+                    throw new Error('Invalid backup file format. Expected servers array.');
+                }
+
+                // Clear existing servers first (optional - you might want to ask user)
+                if (backup.servers.length > 0) {
+                    const confirmClear = confirm(`This will restore ${backup.servers.length} servers from the backup. Continue?`);
+                    if (!confirmClear) return;
+                }
+
+                // Restore each server
+                let restoredCount = 0;
+                for (const server of backup.servers) {
+                    const response = await fetch('http://localhost:3000/api/servers', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            name: server.name,
+                            url: server.url,
+                            type: server.type,
+                            interval: server.interval
+                        })
+                    });
+
+                    const data = await response.json();
+                    if (data.success) {
+                        restoredCount++;
+                    } else {
+                        console.warn(`Failed to restore server ${server.name}: ${data.error}`);
+                    }
+                }
+
+                resultDiv.innerHTML = `
+                    <div class="success">
+                        ✅ Backup restored successfully!
+                        <p><strong>Restored:</strong> ${restoredCount} out of ${backup.servers.length} servers</p>
+                        <p><strong>Backup Date:</strong> ${backup.timestamp ? new Date(backup.timestamp).toLocaleString() : 'Unknown'}</p>
+                        <p><a href="http://localhost:3000" target="_blank">Go to Uptime Monitor</a></p>
+                    </div>
+                `;
+
+                // Clear file input
+                fileInput.value = '';
+                document.getElementById('uploadBtn').disabled = true;
+
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="error">
+                        ❌ Error processing backup: ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        async function loadCurrentServers() {
+            const resultDiv = document.getElementById('currentServers');
+            resultDiv.innerHTML = '<p>Loading current servers and syncing localStorage...</p>';
+
+            try {
+                const response = await fetch('http://localhost:3000/api/servers');
+                const data = await response.json();
+
+                if (data.success && data.servers.length > 0) {
+                    // Sync localStorage with current API data
+                    localStorage.setItem('uptimeServers', JSON.stringify(data.servers));
+                    
+                    let html = `<h3>Current Servers (${data.servers.length} servers):</h3>`;
+                    html += '<div class="success" style="margin-bottom: 15px;">✅ localStorage synced with current server data</div>';
+                    
+                    data.servers.forEach(server => {
+                        html += `
+                            <div class="server-item">
+                                <strong>${server.name}</strong> - ${server.url} (${server.type})
+                                <br><small>Interval: ${server.interval}s | Status: ${server.status || 'unknown'}</small>
+                            </div>
+                        `;
+                    });
+                    resultDiv.innerHTML = html;
+                } else {
+                    // Clear localStorage if no servers
+                    localStorage.removeItem('uptimeServers');
+                    resultDiv.innerHTML = '<p>No servers currently configured. localStorage cleared.</p>';
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="error">
+                        ❌ Error loading servers: ${error.message}
+                        <br><small>localStorage was not updated due to API error.</small>
+                    </div>
+                `;
+            }
+        }
+
+        // Enable upload button when file is selected
+        document.getElementById('fileInput').addEventListener('change', function() {
+            document.getElementById('uploadBtn').disabled = !this.files[0];
+        });
+
+        // Auto-check localStorage on page load
+        window.onload = function() {
+            checkLocalStorage();
+            loadCurrentServers();
+        };
+    </script>
+</body>
+</html>

@@ -1,0 +1,111 @@
+🚀 Uptime Monitor Pro API running on http://localhost:3000
+📱 SMS endpoint: http://localhost:3000/api/send-sms
+📤 FTP upload endpoint: http://localhost:3000/api/upload-ftp
+💚 Health check: http://localhost:3000/api/health
+📱 Sending TEST SMS to +17475673173
+✅ TEST SMS sent successfully - SID: SM7c3e6bf36f69aeba04d7abbd7b16b71e
+📤 FTP connection established
+✅ Public page uploaded successfully via FTP
+📱 Sending SMS: "RanchToSea is DOWN! URL: https://ranchtoseliving.com" to +17475673173
+✅ SMS sent successfully - SID: SMce36f8a4885fba8137356e2c0e267fc2
+📱 Sending SMS: "SR3 is DOWN! URL: https://sr3.crowndns.com" to +17475673173
+✅ SMS sent successfully - SID: SM9e282d6093db7534ab06c5311932ac0c
+📱 Sending SMS: "SR3 is BACK ONLINE! URL: https://sr3.crowndns.com" to +17475673173
+✅ SMS sent successfully - SID: SM423ae5489dd62b00bffd6595e1eace6a
+📤 FTP connection established
+✅ Public page uploaded successfully via FTP
+📤 FTP connection established
+✅ Public page uploaded successfully via FTP
+🚀 Uptime Monitor Pro API running on http://localhost:3000
+📱 SMS endpoint: http://localhost:3000/api/send-sms
+📤 FTP upload endpoint: http://localhost:3000/api/upload-ftp
+💚 Health check: http://localhost:3000/api/health
+📤 Starting automatic FTP upload every 5 minutes
+📤 Performing initial FTP upload...
+📤 FTP connection established
+✅ Public page uploaded successfully via FTP
+✅ Initial FTP upload successful
+📤 FTP connection established
+✅ Public page uploaded successfully via FTP
+📤 Starting scheduled FTP upload...
+📤 FTP connection established
+✅ Public page uploaded successfully via FTP
+✅ Scheduled FTP upload successful
+📤 Starting scheduled FTP upload...
+📤 FTP connection established
+✅ Public page uploaded successfully via FTP
+✅ Scheduled FTP upload successful
+🚀 Uptime Monitor Pro API running on http://localhost:3000
+📱 SMS endpoint: http://localhost:3000/api/send-sms
+📤 FTP upload endpoint: http://localhost:3000/api/upload-ftp
+💚 Health check: http://localhost:3000/api/health
+📤 Starting automatic FTP upload every 5 minutes
+📤 Performing initial FTP upload...
+📤 FTP connection established
+✅ Public page uploaded successfully via FTP
+✅ Initial FTP upload successful
+📤 Starting scheduled FTP upload...
+📤 FTP connection established
+✅ Public page uploaded successfully via FTP
+✅ Scheduled FTP upload successful
+📤 Starting scheduled FTP upload...
+📤 FTP connection established
+✅ Public page uploaded successfully via FTP
+✅ Scheduled FTP upload successful
+📤 Starting scheduled FTP upload...
+📤 FTP connection established
+✅ Public page uploaded successfully via FTP
+✅ Scheduled FTP upload successful
+📤 Starting scheduled FTP upload...
+📤 FTP connection established
+✅ Public page uploaded successfully via FTP
+✅ Scheduled FTP upload successful
+📤 Starting scheduled FTP upload...
+📤 FTP connection established
+✅ Public page uploaded successfully via FTP
+✅ Scheduled FTP upload successful
+🚀 Uptime Monitor Pro API running on http://localhost:3000
+📱 SMS endpoint: http://localhost:3000/api/send-sms
+📤 FTP upload endpoint: http://localhost:3000/api/upload-ftp
+💚 Health check: http://localhost:3000/api/health
+📤 Starting automatic FTP upload every 5 minutes
+📤 Performing initial FTP upload...
+📤 FTP connection established
+✅ Public page uploaded successfully via FTP
+✅ Initial FTP upload successful
+🚀 Uptime Monitor Pro API running on http://localhost:3000
+📱 SMS endpoint: http://localhost:3000/api/send-sms
+📤 FTP upload endpoint: http://localhost:3000/api/upload-ftp
+💚 Health check: http://localhost:3000/api/health
+📤 Starting automatic FTP upload every 5 minutes
+📤 Performing initial FTP upload...
+📤 FTP connection established
+✅ Public page uploaded successfully via FTP
+✅ Initial FTP upload successful
+📧 Sending email: "Test Email from Uptime Monitor Pro" to john@crowninternet.com
+✅ Email sent successfully
+📱 Sending SMS: "SR3 is DOWN! URL: https://sr3.crowndns.com/readme.html" to +17475673173
+✅ SMS sent successfully - SID: SMdc9777c253c35299b0b8858403ef063e
+📧 Sending email: "SR3 is Down" to john@crowninternet.com
+✅ Email sent successfully
+📤 Starting scheduled FTP upload...
+📤 FTP connection established
+✅ Public page uploaded successfully via FTP
+✅ Scheduled FTP upload successful
+📱 Sending SMS: "SR3 is BACK ONLINE! URL: https://sr3.crowndns.com/readme.html" to +17475673173
+✅ SMS sent successfully - SID: SMcdaf97a547387eda389ae0f96c262a0e
+📧 Sending email: "SR3 is Back Online" to john@crowninternet.com
+✅ Email sent successfully
+📤 Starting scheduled FTP upload...
+📤 FTP connection established
+✅ Public page uploaded successfully via FTP
+✅ Scheduled FTP upload successful
+🚀 Uptime Monitor Pro API running on http://localhost:3000
+📱 SMS endpoint: http://localhost:3000/api/send-sms
+📤 FTP upload endpoint: http://localhost:3000/api/upload-ftp
+💚 Health check: http://localhost:3000/api/health
+📤 Starting automatic FTP upload every 5 minutes
+📤 Performing initial FTP upload...
+📤 FTP connection established
+✅ Public page uploaded successfully via FTP
+✅ Initial FTP upload successful

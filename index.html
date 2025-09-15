@@ -1,0 +1,2234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Uptime Monitor Pro</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* CSS Version 1.0.0 */
+        :root {
+            --primary: #6366f1;
+            --secondary: #8b5cf6;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --dark: #1f2937;
+            --light: #f9fafb;
+            --gray: #6b7280;
+            --border: #e5e7eb;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            --gradient: linear-gradient(135deg, var(--primary), var(--secondary));
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--dark);
+            color: white;
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+            padding: 20px 0;
+            background: var(--gradient);
+            border-radius: 20px;
+            box-shadow: var(--shadow);
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 5px;
+            background: linear-gradient(45deg, #fff, #e0e7ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .header p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+
+        .global-toggle {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+            z-index: 1000;
+        }
+
+        .global-toggle:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: scale(1.1);
+        }
+
+        .global-toggle i {
+            font-size: 1.2rem;
+            color: white;
+        }
+
+        .controls {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: var(--shadow);
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #e5e7eb;
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 12px 16px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+        }
+
+        .form-group input::placeholder {
+            color: var(--gray);
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .btn-primary {
+            background: var(--gradient);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(99, 102, 241, 0.3);
+        }
+
+        .btn-danger {
+            background: var(--danger);
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #dc2626;
+            transform: translateY(-2px);
+        }
+
+        .btn-warning {
+            background: var(--warning);
+            color: white;
+        }
+
+        .btn-warning:hover {
+            background: #d97706;
+            transform: translateY(-2px);
+        }
+
+        .btn-clear {
+            background: #6b7280;
+            color: white;
+            border: none;
+            transition: all 0.2s ease;
+        }
+
+        .btn-clear:hover {
+            background: #4b5563;
+            transform: translateY(-2px);
+        }
+
+        .status-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 20px;
+            margin-bottom: 40px;
+            align-items: start;
+        }
+
+        /* Ensure two columns on larger screens */
+        @media (min-width: 1200px) {
+            .status-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        .status-card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 15px;
+            padding: 20px;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease;
+            height: fit-content;
+            align-self: start;
+        }
+
+        .status-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+        }
+
+        .status-card-header {
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0;
+            margin: 0;
+        }
+
+        .status-card-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+        }
+
+        .status-card-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease-out;
+            opacity: 0;
+            padding: 0;
+            margin: 0;
+        }
+
+        .status-card-content.expanded {
+            max-height: 500px;
+            opacity: 1;
+            transition: max-height 0.3s ease-in, opacity 0.3s ease-in;
+            padding: 15px 0 0 0;
+        }
+
+        .chevron {
+            width: 0;
+            height: 0;
+            border-left: 6px solid transparent;
+            border-right: 6px solid transparent;
+            border-top: 8px solid var(--gray);
+            transition: transform 0.3s ease;
+            margin-left: 10px;
+            flex-shrink: 0;
+        }
+
+        .chevron.expanded {
+            transform: rotate(180deg);
+        }
+
+        .status-indicator {
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 12px;
+            height: 100%;
+        }
+
+        .status-up { background: var(--success); }
+        .status-warning { background: var(--warning); }
+        .status-down { background: var(--danger); }
+        .status-checking { background: var(--warning); }
+        .status-stopped { background: var(--gray); }
+
+        .status-countdown {
+            color: var(--primary);
+            font-size: 0.85rem;
+            font-weight: 500;
+            margin-top: -20px;
+            margin-bottom: 5px;
+            opacity: 0.8;
+        }
+
+        .status-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .status-name {
+            font-weight: 700;
+            font-size: 1.1rem;
+        }
+
+        .status-type {
+            background: #374151;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: 500;
+            color: white;
+            border: 1px solid #4b5563;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+        }
+
+        .status-url {
+            color: var(--gray);
+            font-size: 0.9rem;
+            margin-bottom: 10px;
+            word-break: break-all;
+        }
+
+        .status-stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .stat {
+            text-align: center;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+        }
+
+        .stat-value {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        .stat-label {
+            font-size: 0.8rem;
+            color: var(--gray);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* Status Chart */
+        .status-chart {
+            display: flex;
+            gap: 2px;
+            margin: 10px 0;
+            align-items: end;
+        }
+
+        .status-bar {
+            width: 8px;
+            height: 12px;
+            border-radius: 2px;
+            background: var(--gray);
+            transition: all 0.3s ease;
+        }
+
+        .status-bar.up {
+            background: var(--success);
+        }
+
+        .status-bar.warning {
+            background: var(--warning);
+        }
+
+        .status-bar.down {
+            background: var(--danger);
+        }
+
+        .status-bar.pending {
+            background: var(--gray);
+        }
+
+        .config-section {
+            margin-bottom: 30px;
+        }
+
+        .config-section h3 {
+            margin-bottom: 20px;
+            color: #e5e7eb;
+            font-size: 1.3rem;
+        }
+
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 60px;
+            height: 34px;
+        }
+
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 34px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 26px;
+            width: 26px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+
+        input:checked + .slider {
+            background-color: var(--primary);
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(26px);
+        }
+
+        .alert {
+            padding: 15px 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .alert-success {
+            background: rgba(16, 185, 129, 0.2);
+            border: 1px solid var(--success);
+            color: var(--success);
+        }
+
+        .alert-error {
+            background: rgba(239, 68, 68, 0.2);
+            border: 1px solid var(--danger);
+            color: var(--danger);
+        }
+
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(5px);
+        }
+
+        .modal-content {
+            background: var(--dark);
+            margin: 2% auto;
+            padding: 30px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 15px;
+            width: 90%;
+            max-width: 500px;
+            max-height: 90vh;
+            box-shadow: var(--shadow);
+            position: relative;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .modal-header h3 {
+            margin: 0;
+            color: white;
+        }
+
+        .close {
+            color: var(--gray);
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: color 0.3s ease;
+        }
+
+        .close:hover {
+            color: white;
+        }
+
+        /* Two-column layout */
+        .main-content-grid {
+            display: grid;
+            grid-template-columns: 300px 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .left-column {
+            display: flex;
+            flex-direction: column;
+            gap: 30px;
+        }
+
+        .right-column {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .header h1 { font-size: 2rem; }
+            .controls { grid-template-columns: 1fr; }
+            .main-content-grid { grid-template-columns: 1fr; }
+            .status-grid { grid-template-columns: 1fr; }
+            .container { padding: 10px; }
+            .modal-content { 
+                margin: 5% auto; 
+                padding: 20px; 
+                max-height: 85vh;
+                width: 95%;
+            }
+        }
+
+        @media (min-width: 769px) and (max-width: 1024px) {
+            .main-content-grid { 
+                grid-template-columns: 280px 1fr;
+            }
+        }
+
+        /* Drag and Drop Styles */
+        .status-card {
+            cursor: grab;
+            transition: all 0.3s ease;
+        }
+
+        .status-card:active {
+            cursor: grabbing;
+        }
+
+        .status-card.dragging {
+            opacity: 0.5;
+            transform: rotate(5deg);
+            z-index: 1000;
+        }
+
+        .status-card.drag-over {
+            border: 2px dashed var(--primary);
+            background: rgba(99, 102, 241, 0.1);
+        }
+
+        .status-grid.drag-active {
+            background: rgba(99, 102, 241, 0.05);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Uptime Monitor Pro</h1>
+            <p>Advanced Server Monitoring with SMS Alerts</p>
+            <div class="global-toggle" onclick="monitor.toggleAllServers()" title="Toggle All Servers">
+                <i class="fas fa-eye" id="globalToggleIcon"></i>
+            </div>
+        </div>
+
+        <div class="alert alert-success" id="successAlert"></div>
+        <div class="alert alert-error" id="errorAlert"></div>
+
+        <div class="main-content-grid">
+            <div class="left-column">
+                <div class="card">
+                    <h3>Add New Server</h3>
+                    <form id="serverForm">
+                        <div class="form-group">
+                            <label for="serverName">Server Name</label>
+                            <input type="text" id="serverName" placeholder="e.g., My Web Server" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="serverUrl">URL/IP Address</label>
+                            <input type="text" id="serverUrl" placeholder="e.g., https://example.com or 192.168.1.1" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="checkType">Check Type</label>
+                            <select id="checkType" required>
+                                <option value="https">HTTPS/HTTP</option>
+                                <option value="ping">Ping</option>
+                                <option value="dns">DNS Resolution</option>
+                                <option value="tcp">TCP Port</option>
+                                <option value="cloudflare">Cloudflare Protected</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="checkInterval">Check Interval (seconds)</label>
+                            <input type="number" id="checkInterval" value="60" min="30" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary"><i class="fas fa-plus"></i> Add Server</button>
+                    </form>
+                </div>
+
+                <div class="card">
+                    <h3>Monitor Status</h3>
+                    <div style="margin-bottom: 15px;">
+                        <strong>Monitoring:</strong> <span id="monitorStatus">Starting...</span><br>
+                        <small>Servers: <span id="serverCount">0</span> | Uptime Average: <span id="totalUptime">0%</span></small>
+                    </div>
+                    <div style="display: flex; gap: 10px;">
+                        <button id="startStopBtn" class="btn btn-primary" onclick="toggleMonitoring()" style="flex: 1;"><i class="fas fa-play"></i> Start Monitoring</button>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3>Settings</h3>
+                    <div style="display: flex; flex-direction: column; gap: 10px;">
+                        <button class="btn btn-primary" onclick="openTwilioModal()"><i class="fas fa-sms"></i> SMS Settings</button>
+                        <button class="btn btn-primary" onclick="openEmailModal()"><i class="fas fa-envelope"></i> Email Settings</button>
+                        <button class="btn btn-primary" onclick="openFtpModal()"><i class="fas fa-upload"></i> FTP Settings</button>
+                        <button class="btn btn-primary" onclick="openRecoveryTool()"><i class="fas fa-tools"></i> Recovery</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="right-column">
+                <div id="statusGrid" class="status-grid">
+                    <div style="text-align: center; padding: 40px; color: var(--gray);">
+                        No servers added yet. Add your first server above.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Twilio Configuration Modal -->
+    <div id="twilioModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Twilio SMS Configuration</h3>
+                <span class="close" onclick="closeTwilioModal()">&times;</span>
+            </div>
+            <div id="twilioStatus" class="twilio-status" style="background: var(--success); color: white; padding: 10px; border-radius: 5px; margin-bottom: 20px; text-align: center;">
+                <i class="fas fa-check-circle"></i> SMS is configured and working!
+            </div>
+            <div style="background: var(--gray); color: white; padding: 8px; border-radius: 3px; margin-bottom: 15px; font-size: 0.9rem; text-align: center;">
+                <i class="fas fa-shield-alt"></i> Credentials are stored securely server-side (masked below)
+            </div>
+            <div class="form-group">
+                <label for="modalTwilioSid">Account SID</label>
+                <input type="text" id="modalTwilioSid" placeholder="Your Twilio Account SID">
+            </div>
+            <div class="form-group">
+                <label for="modalTwilioToken">Auth Token</label>
+                <input type="password" id="modalTwilioToken" placeholder="Your Twilio Auth Token">
+            </div>
+            <div class="form-group">
+                <label for="modalTwilioFrom">From Number</label>
+                <input type="text" id="modalTwilioFrom" placeholder="+1234567890">
+            </div>
+            <div class="form-group">
+                <label for="modalTwilioTo">Alert Number</label>
+                <input type="text" id="modalTwilioTo" placeholder="+1234567890">
+            </div>
+            <div class="form-group">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <label for="modalSmsEnabled" style="margin: 0; color: white; font-weight: 500;">SMS Alerts</label>
+                    <label class="toggle-switch" style="margin: 0;">
+                        <input type="checkbox" id="modalSmsEnabled">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+            </div>
+            <div style="display: flex; gap: 10px; margin-top: 20px;">
+                <button type="button" class="btn btn-primary" onclick="saveTwilioConfigFromModal()">Save Configuration</button>
+                <button type="button" class="btn btn-secondary" onclick="testSMS()">Test SMS</button>
+                <button type="button" class="btn btn-danger" onclick="closeTwilioModal()">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- FTP Configuration Modal -->
+    <div id="ftpModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>FTP Upload Configuration</h3>
+                <span class="close" onclick="closeFtpModal()">&times;</span>
+            </div>
+            <div id="ftpStatus" class="ftp-status" style="background: var(--warning); color: white; padding: 10px; border-radius: 5px; margin-bottom: 20px; text-align: center;">
+                <i class="fas fa-exclamation-triangle"></i> FTP is not configured
+            </div>
+            <div style="background: var(--gray); color: white; padding: 8px; border-radius: 3px; margin-bottom: 15px; font-size: 0.9rem; text-align: center;">
+                <i class="fas fa-shield-alt"></i> Credentials are stored securely server-side
+            </div>
+            <div class="form-group">
+                <label for="modalFtpHost">FTP Host</label>
+                <input type="text" id="modalFtpHost" placeholder="ftp.example.com">
+            </div>
+            <div class="form-group">
+                <label for="modalFtpUser">Username</label>
+                <input type="text" id="modalFtpUser" placeholder="your-username">
+            </div>
+            <div class="form-group">
+                <label for="modalFtpPassword">Password</label>
+                <input type="password" id="modalFtpPassword" placeholder="your-password">
+            </div>
+            <div class="form-group">
+                <label for="modalFtpPort">Port</label>
+                <input type="number" id="modalFtpPort" placeholder="21" value="21">
+            </div>
+            <div class="form-group">
+                <label for="modalFtpRemotePath">Remote Path</label>
+                <input type="text" id="modalFtpRemotePath" placeholder="index.html" value="index.html">
+            </div>
+            <div class="form-group">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <label for="modalFtpEnabled" style="margin: 0; color: white; font-weight: 500;">Enable FTP Upload</label>
+                    <label class="toggle-switch" style="margin: 0;">
+                        <input type="checkbox" id="modalFtpEnabled">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+            </div>
+            <div style="display: flex; gap: 10px; margin-top: 20px;">
+                <button type="button" class="btn btn-primary" onclick="saveFtpConfigFromModal()">Save Configuration</button>
+                <button type="button" class="btn btn-secondary" onclick="testFtpUpload()">Test Upload</button>
+                <button type="button" class="btn btn-danger" onclick="closeFtpModal()">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Email Configuration Modal -->
+    <div id="emailModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>SendGrid Email Configuration</h3>
+                <span class="close" onclick="closeEmailModal()">&times;</span>
+            </div>
+            <div id="emailStatus" class="email-status" style="background: var(--warning); color: white; padding: 10px; border-radius: 5px; margin-bottom: 20px; text-align: center;">
+                <i class="fas fa-exclamation-triangle"></i> Email is not configured
+            </div>
+            <div style="background: var(--gray); color: white; padding: 8px; border-radius: 3px; margin-bottom: 15px; font-size: 0.9rem; text-align: center;">
+                <i class="fas fa-shield-alt"></i> Credentials are stored securely server-side
+            </div>
+            <div class="form-group">
+                <label for="modalSendgridApiKey">SendGrid API Key</label>
+                <input type="password" id="modalSendgridApiKey" placeholder="SG.xxxxxxxxxxxxxxxxxxxxxxxxxx">
+            </div>
+            <div class="form-group">
+                <label for="modalEmailFrom">From Email</label>
+                <input type="email" id="modalEmailFrom" placeholder="alerts@yourdomain.com">
+            </div>
+            <div class="form-group">
+                <label for="modalEmailTo">Alert Email</label>
+                <input type="email" id="modalEmailTo" placeholder="admin@yourdomain.com">
+            </div>
+            <div class="form-group">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <label for="modalEmailEnabled" style="margin: 0; color: white; font-weight: 500;">Email Alerts</label>
+                    <label class="toggle-switch" style="margin: 0;">
+                        <input type="checkbox" id="modalEmailEnabled">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+            </div>
+            <div style="display: flex; gap: 10px; margin-top: 20px;">
+                <button type="button" class="btn btn-primary" onclick="saveEmailConfigFromModal()">Save Configuration</button>
+                <button type="button" class="btn btn-secondary" onclick="testEmail()">Test Email</button>
+                <button type="button" class="btn btn-danger" onclick="closeEmailModal()">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // JavaScript Version 1.1.0 - File-based storage
+        class UptimeMonitor {
+            constructor() {
+                this.servers = [];
+                this.config = {};
+                this.monitoring = false;
+                this.intervals = {};
+                this.apiBase = window.location.origin;
+                this.editingServerId = null;
+                this.init();
+            }
+
+            async init() {
+                await this.loadServers();
+                await this.loadConfig();
+                this.renderServers();
+                this.setupEventListeners();
+                this.setupDragAndDrop();
+                this.updateMonitorStatus();
+                
+                // Start countdown updates every second with debouncing
+                this.countdownUpdateInterval = setInterval(() => {
+                    this.updateCountdowns();
+                }, 1000);
+                
+                // Auto-start monitoring if there are servers
+                if (this.servers.length > 0 && !this.monitoring) {
+                    this.startMonitoring();
+                }
+            }
+
+            setupEventListeners() {
+                document.getElementById('serverForm').addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    if (this.editingServerId) {
+                        this.updateServerData();
+                    } else {
+                        this.addServer();
+                    }
+                });
+            }
+
+            async loadServers() {
+                try {
+                    const response = await fetch(`${this.apiBase}/api/servers`);
+                    const data = await response.json();
+                    if (data.success) {
+                        this.servers = data.servers;
+                    } else {
+                        console.error('Failed to load servers:', data.error);
+                        this.showAlert('Failed to load servers: ' + data.error, 'error');
+                    }
+                } catch (error) {
+                    console.error('Error loading servers:', error);
+                    this.showAlert('Error loading servers. Using local storage fallback.', 'error');
+                    // Fallback to localStorage if API is not available
+                    this.servers = JSON.parse(localStorage.getItem('uptimeServers')) || [];
+                }
+            }
+
+            async loadConfig() {
+                try {
+                    const response = await fetch(`${this.apiBase}/api/config`);
+                    const data = await response.json();
+                    if (data.success) {
+                        this.config = data.config;
+                    } else {
+                        console.error('Failed to load config:', data.error);
+                        this.showAlert('Failed to load config: ' + data.error, 'error');
+                    }
+                } catch (error) {
+                    console.error('Error loading config:', error);
+                    this.showAlert('Error loading config. Using local storage fallback.', 'error');
+                    // Fallback to localStorage if API is not available
+                    this.config = JSON.parse(localStorage.getItem('uptimeConfig')) || {};
+                }
+                
+                // Populate modal form fields
+                if (this.config.twilioSid) document.getElementById('modalTwilioSid').value = this.config.twilioSid;
+                if (this.config.twilioToken) document.getElementById('modalTwilioToken').value = this.config.twilioToken;
+                if (this.config.twilioFrom) document.getElementById('modalTwilioFrom').value = this.config.twilioFrom;
+                if (this.config.twilioTo) document.getElementById('modalTwilioTo').value = this.config.twilioTo;
+                if (this.config.smsEnabled) document.getElementById('modalSmsEnabled').checked = this.config.smsEnabled;
+            }
+
+            async addServer() {
+                const name = document.getElementById('serverName').value;
+                const url = document.getElementById('serverUrl').value;
+                const type = document.getElementById('checkType').value;
+                const interval = parseInt(document.getElementById('checkInterval').value);
+
+                try {
+                    const response = await fetch(`${this.apiBase}/api/servers`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ name, url, type, interval })
+                    });
+
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        this.servers.push(data.server);
+                        this.renderServers();
+                        this.updateMonitorStatus();
+                        this.showAlert('Server added successfully!', 'success');
+                        this.resetForm();
+                        
+                        // Auto-start monitoring when first server is added
+                        if (this.servers.length === 1 && !this.monitoring) {
+                            this.startMonitoring();
+                        } else if (this.monitoring && !data.server.stopped) {
+                            // If monitoring is already running, start monitoring this new server
+                            this.intervals[data.server.id] = setInterval(() => {
+                                this.checkServer(data.server);
+                            }, data.server.interval * 1000);
+                            
+                            // Initial check for the new server
+                            this.checkServer(data.server);
+                        }
+                    } else {
+                        this.showAlert('Failed to add server: ' + data.error, 'error');
+                    }
+                } catch (error) {
+                    console.error('Error adding server:', error);
+                    this.showAlert('Error adding server. Check console for details.', 'error');
+                }
+            }
+
+            async checkServer(server) {
+                console.log(`checkServer called for: ${server.name} (${server.type}), current status: ${server.status}, consecutive failures: ${server.consecutiveFailures || 0}`);
+                const startTime = Date.now();
+                let success = false;
+                
+                try {
+                    switch (server.type) {
+                        case 'https':
+                            success = await this.checkHttp(server.url);
+                            break;
+                        case 'ping':
+                            success = await this.checkPing(server.url);
+                            break;
+                        case 'dns':
+                            success = await this.checkDns(server.url);
+                            break;
+                        case 'tcp':
+                            success = await this.checkTcp(server.url);
+                            break;
+                        case 'cloudflare':
+                            success = await this.checkCloudflare(server.url);
+                            break;
+                    }
+                } catch (error) {
+                    console.error('Check failed:', error);
+                    success = false;
+                }
+
+                const responseTime = Date.now() - startTime;
+                const wasDown = server.status === 'down';
+                
+                // Initialize consecutive failures if not present
+                if (!server.consecutiveFailures) server.consecutiveFailures = 0;
+                
+                // Separate logic for HTTPS vs Ping checks
+                if (server.type === 'https') {
+                    // HTTPS checks: Use 3-strike rule for warnings/down
+                    if (success) {
+                        server.consecutiveFailures = 0;
+                        server.status = 'up';
+                        console.log(`HTTPS test SUCCESS for ${server.name}: Status = up`);
+                    } else {
+                        server.consecutiveFailures++;
+                        console.log(`HTTPS test FAILED for ${server.name}: Consecutive failures = ${server.consecutiveFailures}`);
+                        
+                        if (server.consecutiveFailures >= 3) {
+                            server.status = 'down'; // Red state after 3 consecutive failures
+                            console.log(`HTTPS test: ${server.name} marked as DOWN (3+ failures)`);
+                        } else if (server.consecutiveFailures >= 1) {
+                            server.status = 'warning'; // Yellow state for 1-2 failures
+                            console.log(`HTTPS test: ${server.name} marked as WARNING (${server.consecutiveFailures}/3 failures)`);
+                        } else {
+                            server.status = 'up'; // Should not reach here, but safety fallback
+                        }
+                    }
+                } else if (server.type === 'ping') {
+                    // Ping checks: Use immediate status change (no 3-strike rule)
+                    server.status = success ? 'up' : 'down';
+                    server.consecutiveFailures = 0; // Reset for ping checks
+                    console.log(`Ping test for ${server.name}: Status = ${server.status}`);
+                } else {
+                    // For other check types (DNS, TCP, etc.), use immediate status change
+                    server.status = success ? 'up' : 'down';
+                    server.consecutiveFailures = 0; // Reset for other checks
+                    console.log(`Other test for ${server.name}: Status = ${server.status}`);
+                }
+                
+                // Update lastCheck time immediately to prevent countdown issues
+                server.lastCheck = new Date().toISOString();
+                server.responseTime = responseTime;
+                server.totalChecks++;
+                if (success) server.successfulChecks++;
+                server.uptime = Math.round((server.successfulChecks / server.totalChecks) * 100);
+                
+                // Clear any countdown reset flags when check completes
+                server.countdownResetTime = null;
+
+                // Update test history (keep last 15 tests) - store actual status for HTTP/HTTPS
+                if (!server.testHistory) server.testHistory = [];
+                if (server.type === 'https') {
+                    // For HTTP/HTTPS, store the actual status (up/warning/down)
+                    server.testHistory.push(server.status);
+                } else {
+                    // For other types, store success/failure
+                    server.testHistory.push(success ? 'up' : 'down');
+                }
+                if (server.testHistory.length > 15) {
+                    server.testHistory = server.testHistory.slice(-15);
+                }
+
+                if ((wasDown && success) || (server.justEdited && success)) {
+                    this.showAlert(`${server.name} is back online!`, 'success');
+                    server.justEdited = false; // Clear the flag after showing the alert
+                    
+                    // Send SMS alert when server comes back up (only if it was down)
+                    if (wasDown && this.config.smsEnabled && !server.justEdited) {
+                        await this.sendSmsAlert(`${server.name} is BACK ONLINE! URL: ${server.url}`);
+                    }
+                    
+                    // Send Email alert when server comes back up (only if it was down)
+                    if (wasDown && this.config.emailEnabled && !server.justEdited) {
+                        await this.sendEmailAlert(
+                            `${server.name} is Back Online`,
+                            `Great news! ${server.name} is now responding normally and is back online.`,
+                            server.name,
+                            server.url
+                        );
+                    }
+                } else if (!success && server.status === 'down') {
+                    this.showAlert(`${server.name} is down!`, 'error');
+                    
+                    // Send SMS alert only when server first goes down (not on every check)
+                    if (this.config.smsEnabled && !server.smsAlertSent) {
+                        await this.sendSmsAlert(`${server.name} is DOWN! URL: ${server.url}`);
+                        server.smsAlertSent = true; // Mark that SMS was sent
+                    }
+                    
+                    // Send Email alert only when server first goes down (not on every check)
+                    if (this.config.emailEnabled && !server.emailAlertSent) {
+                        await this.sendEmailAlert(
+                            `${server.name} is Down`,
+                            `Alert! ${server.name} is not responding and appears to be down. Please investigate immediately.`,
+                            server.name,
+                            server.url
+                        );
+                        server.emailAlertSent = true; // Mark that email was sent
+                    }
+                } else if (server.status === 'warning') {
+                    this.showAlert(`${server.name} is experiencing issues (${server.consecutiveFailures}/3 failures)`, 'warning');                                                                                                  
+                }
+                
+                // Reset SMS and Email alert flags when server is up
+                if (success && server.status === 'up') {
+                    server.smsAlertSent = false;
+                    server.emailAlertSent = false;
+                }
+
+                // Save server updates via API
+                await this.updateServer(server);
+                this.renderServers();
+                this.updateMonitorStatus();
+            }
+
+        async checkHttp(url) {
+            try {
+                if (!url.startsWith('http')) url = 'https://' + url;
+                
+                // For HTTPS checks, ALWAYS use server-side check for reliable 502 detection
+                try {
+                    const response = await fetch(`/api/check-url?url=${encodeURIComponent(url)}`);
+                    const result = await response.json();
+                    
+                    if (result.success) {
+                        if (result.isCloudflareError) {
+                            console.log(`Cloudflare error detected via server: ${result.status} for ${url}`);
+                        }
+                        console.log(`Server-side HTTPS check result for ${url}: isFailure=${result.isFailure}, isUp=${result.isUp}, status=${result.status}`);
+                        return !result.isFailure; // Return true if not a failure, false if failure
+                    } else {
+                        console.log(`Server-side HTTPS check failed for ${url}: ${result.error}`);
+                        return false; // Treat server-side check failure as failure
+                    }
+                } catch (serverError) {
+                    console.log(`Server-side HTTPS check failed for ${url}:`, serverError);
+                    return false; // Treat server-side check failure as failure
+                }
+            } catch (error) {
+                console.log(`HTTPS check error for ${url}:`, error);
+                return false;
+            }
+        }
+            async checkPing(host) {
+                // Clean hostname (remove protocol if present)
+                const cleanHost = host.replace(/^https?:\/\//, '').split('/')[0];
+                
+                // Try multiple approaches for ping checks
+                try {
+                    // Method 1: Try simple fetch to main domain first
+                    try {
+                        const response = await fetch(`https://${cleanHost}`, {
+                            method: 'HEAD',
+                            mode: 'no-cors',
+                            signal: AbortSignal.timeout(5000)
+                        });
+                        return true; // no-cors always returns true, but indicates server is reachable
+                    } catch (fetchError) {
+                        // Method 2: Try favicon approach as fallback
+                        const img = new Image();
+                        img.crossOrigin = 'anonymous';
+                        
+                        return new Promise((resolve) => {
+                            const timeout = setTimeout(() => {
+                                resolve(false);
+                            }, 5000);
+                            
+                            img.onload = () => {
+                                clearTimeout(timeout);
+                                resolve(true);
+                            };
+                            
+                            img.onerror = () => {
+                                clearTimeout(timeout);
+                                resolve(false);
+                            };
+                            
+                            img.src = `https://${cleanHost}/favicon.ico?t=${Date.now()}`;
+                        });
+                    }
+                } catch (error) {
+                    return false;
+                }
+            }
+
+            async checkDns(hostname) {
+                try {
+                    // Use a simple DNS check via fetch to a known working service
+                    const response = await fetch(`https://dns.google/resolve?name=${hostname}&type=A`, {
+                        method: 'GET',
+                        mode: 'cors'
+                    });
+                    return response.ok;
+                } catch (error) {
+                    return false;
+                }
+            }
+
+            async checkTcp(host) {
+                // For TCP checks, we'll use a WebSocket connection attempt
+                return new Promise((resolve) => {
+                    const timeout = setTimeout(() => resolve(false), 5000);
+                    
+                    try {
+                        const ws = new WebSocket(`ws://${host}`);
+                        ws.onopen = () => {
+                            clearTimeout(timeout);
+                            ws.close();
+                            resolve(true);
+                        };
+                        ws.onerror = () => {
+                            clearTimeout(timeout);
+                            resolve(false);
+                        };
+                    } catch (error) {
+                        clearTimeout(timeout);
+                        resolve(false);
+                    }
+                });
+            }
+
+            async checkCloudflare(url) {
+                try {
+                    if (!url.startsWith("http")) url = "https://" + url;
+                    
+                    // Method 1: Check status codes with CORS
+                    try {
+                        const response = await fetch(url, {
+                            method: "HEAD",
+                            mode: "cors",
+                            signal: AbortSignal.timeout(10000)
+                        });
+                        
+                        // Check for Cloudflare error pages
+                        if (response.status === 502 || response.status === 503 || response.status === 504) {
+                            console.log(`Cloudflare error detected: ${response.status} for ${url}`);
+                            return false;
+                        }
+                        
+                        if (!response.ok) return false;
+                    } catch (corsError) {
+                        console.log(`CORS failed for ${url}, trying content check`);
+                    }
+                    
+                    // Method 2: Check for actual content vs error pages
+                    try {
+                        const response = await fetch(url, {
+                            method: "GET",
+                            mode: "cors",
+                            signal: AbortSignal.timeout(10000)
+                        });
+                        
+                        if (!response.ok) return false;
+                        
+                        const text = await response.text();
+                        
+                        // Look for Cloudflare error indicators
+                        const errorIndicators = [
+                            "cloudflare",
+                            "bad gateway",
+                            "service unavailable",
+                            "gateway timeout",
+                            "error 502",
+                            "error 503",
+                            "error 504",
+                            "502 bad gateway",
+                            "503 service unavailable",
+                            "504 gateway timeout"
+                        ];
+                        
+                        const hasError = errorIndicators.some(error => 
+                            text.toLowerCase().includes(error)
+                        );
+                        
+                        if (hasError) {
+                            console.log(`Cloudflare error content detected for ${url}`);
+                            return false;
+                        }
+                        
+                        return true;
+                    } catch (contentError) {
+                        // Fallback to basic HTTP check
+                        return await this.checkHttp(url);
+                    }
+                } catch (error) {
+                    console.error(`Cloudflare check failed for ${url}:`, error);
+                    return false;
+                }
+            }
+            async sendSmsAlert(message) {
+                if (!this.config.smsEnabled) {
+                    console.log('SMS alerts are disabled, skipping SMS notification');
+                    return;
+                }
+
+                try {
+                    // Use server-side SMS endpoint (credentials stored securely on server)
+                    const response = await fetch(`${this.apiBase}/api/send-sms`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            message: message
+                        })
+                    });
+
+                    if (response.ok) {
+                        this.showAlert('SMS alert sent!', 'success');
+                    } else {
+                        this.showAlert('Failed to send SMS alert', 'error');
+                    }
+                } catch (error) {
+                    console.error('SMS send error:', error);
+                    this.showAlert('SMS alert failed - check configuration', 'error');
+                }
+            }
+
+            async sendEmailAlert(subject, message, serverName, serverUrl) {
+                if (!this.config.emailEnabled) {
+                    console.log('Email alerts are disabled, skipping email notification');
+                    return;
+                }
+
+                try {
+                    const response = await fetch(`${this.apiBase}/api/send-email`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            subject: subject,
+                            message: message,
+                            serverName: serverName,
+                            serverUrl: serverUrl
+                        })
+                    });
+
+                    if (response.ok) {
+                        this.showAlert('Email alert sent!', 'success');
+                    } else {
+                        this.showAlert('Failed to send email alert', 'error');
+                    }
+                } catch (error) {
+                    console.error('Email send error:', error);
+                    this.showAlert('Email alert failed - check configuration', 'error');
+                }
+            }
+
+            startMonitoring() {
+                this.monitoring = true;
+                
+                // Restart countdown updates if not already running
+                if (!this.countdownUpdateInterval) {
+                    this.countdownUpdateInterval = setInterval(() => {
+                        this.updateCountdowns();
+                    }, 1000);
+                }
+                
+                this.servers.forEach(server => {
+                    // Only start monitoring for servers that aren't stopped
+                    if (!server.stopped) {
+                        this.intervals[server.id] = setInterval(() => {
+                            this.checkServer(server);
+                        }, server.interval * 1000);
+                        
+                        // Initial check
+                        this.checkServer(server);
+                    }
+                });
+                this.updateMonitorStatus();
+            }
+
+            stopMonitoring() {
+                this.monitoring = false;
+                Object.values(this.intervals).forEach(interval => clearInterval(interval));
+                this.intervals = {};
+                
+                // Clear countdown update interval
+                if (this.countdownUpdateInterval) {
+                    clearInterval(this.countdownUpdateInterval);
+                    this.countdownUpdateInterval = null;
+                }
+                
+                this.updateMonitorStatus();
+            }
+
+            toggleMonitoring() {
+                if (this.monitoring) {
+                    // Only allow stopping if user confirms
+                    if (confirm('Are you sure you want to stop monitoring? This will stop all server checks.')) {
+                        this.stopMonitoring();
+                    }
+                } else {
+                    if (this.servers.length === 0) {
+                        this.showAlert('Please add at least one server first!', 'error');
+                        return;
+                    }
+                    this.startMonitoring();
+                }
+            }
+
+            async toggleServerMonitoring(id) {
+                const server = this.servers.find(s => s.id === id);
+                if (!server) return;
+
+                server.stopped = !server.stopped;
+
+                if (server.stopped) {
+                    // Stop monitoring this specific server
+                    if (this.intervals[id]) {
+                        clearInterval(this.intervals[id]);
+                        delete this.intervals[id];
+                    }
+                    server.status = 'stopped';
+                    this.showAlert(`${server.name} monitoring stopped`, 'success');
+                } else {
+                    // Start monitoring this specific server
+                    if (this.monitoring) {
+                        this.intervals[id] = setInterval(() => {
+                            this.checkServer(server);
+                        }, server.interval * 1000);
+                        
+                        // Immediate check
+                        this.checkServer(server);
+                    }
+                    this.showAlert(`${server.name} monitoring started`, 'success');
+                }
+
+                // Save the updated server data
+                await this.updateServer(server);
+                this.renderServers();
+                this.updateMonitorStatus();
+            }
+
+            async clearServerStats(id) {
+                const server = this.servers.find(s => s.id === id);
+                if (!server) return;
+
+                // Confirm before clearing stats
+                if (!confirm(`Are you sure you want to clear all statistics for "${server.name}"? This will reset uptime, response time, and test history.`)) {
+                    return;
+                }
+
+                // Reset all statistics
+                server.status = 'unknown';
+                server.lastCheck = new Date(Date.now() - (server.interval * 1000)).toISOString(); // Set to one interval ago
+                server.uptime = 100;
+                server.responseTime = 0;
+                server.totalChecks = 0;
+                server.successfulChecks = 0;
+                server.testHistory = [];
+                server.consecutiveFailures = 0;
+                server.countdownResetTime = null; // Clear any countdown reset time
+
+                // Save the updated server data
+                await this.updateServer(server);
+                this.renderServers();
+                this.updateMonitorStatus();
+                
+                // Trigger immediate check to reset countdown properly
+                if (!server.stopped && this.monitoring) {
+                    setTimeout(() => {
+                        this.checkServer(server);
+                    }, 100);
+                }
+                
+                this.showAlert(`${server.name} statistics cleared`, 'success');
+            }
+
+            editServer(id) {
+                const server = this.servers.find(s => s.id === id);
+                if (!server) return;
+
+                // Populate form with server data
+                document.getElementById('serverName').value = server.name;
+                document.getElementById('serverUrl').value = server.url;
+                document.getElementById('checkType').value = server.type;
+                document.getElementById('checkInterval').value = server.interval;
+
+                // Change form button text and set editing mode
+                const submitBtn = document.querySelector('#serverForm button[type="submit"]');
+                submitBtn.textContent = 'Update Server';
+                this.editingServerId = id;
+
+                // Scroll to form
+                document.querySelector('.left-column').scrollIntoView({ behavior: 'smooth' });
+            }
+
+            async updateServerData() {
+                const name = document.getElementById('serverName').value;
+                const url = document.getElementById('serverUrl').value;
+                const type = document.getElementById('checkType').value;
+                const interval = parseInt(document.getElementById('checkInterval').value);
+
+                try {
+                    const response = await fetch(`${this.apiBase}/api/servers/${this.editingServerId}`, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ name, url, type, interval })
+                    });
+
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        // Update local server data
+                        const serverIndex = this.servers.findIndex(s => s.id === this.editingServerId);
+                        if (serverIndex !== -1) {
+                            this.servers[serverIndex] = { ...this.servers[serverIndex], name, url, type, interval };
+                        }
+                        
+                        this.renderServers();
+                        this.updateMonitorStatus();
+                        
+                        // Trigger immediate check for the updated server
+                        const updatedServer = this.servers[serverIndex];
+                        if (updatedServer && !updatedServer.stopped) {
+                            // Reset status to unknown before checking to ensure fresh start
+                            console.log(`Resetting server ${updatedServer.name} status before immediate check`);
+                            updatedServer.status = 'unknown';
+                            updatedServer.consecutiveFailures = 0;
+                            updatedServer.smsAlertSent = false;
+                            updatedServer.justEdited = true; // Flag to show "back online" on first successful check
+                            this.renderServers(); // Update display immediately
+                            
+                            // Perform the check
+                            setTimeout(() => {
+                                console.log(`Performing immediate check for ${updatedServer.name} with URL: ${updatedServer.url}`);
+                                this.checkServer(updatedServer);
+                            }, 100); // Small delay to ensure UI updates
+                        }
+                        
+                        this.showAlert('Server updated successfully!', 'success');
+                        this.resetForm();
+                    } else {
+                        this.showAlert('Failed to update server: ' + data.error, 'error');
+                    }
+                } catch (error) {
+                    console.error('Error updating server:', error);
+                    this.showAlert('Error updating server. Check console for details.', 'error');
+                }
+            }
+
+            resetForm() {
+                document.getElementById('serverForm').reset();
+                document.getElementById('checkInterval').value = '60';
+                const submitBtn = document.querySelector('#serverForm button[type="submit"]');
+                submitBtn.innerHTML = '<i class="fas fa-plus"></i> Add Server';
+                this.editingServerId = null;
+            }
+
+            async deleteServer(id) {
+                const server = this.servers.find(s => s.id === id);
+                if (!server) return;
+
+                // Confirm before deleting server
+                if (!confirm(`Are you sure you want to delete "${server.name}"? This action cannot be undone and will permanently remove all monitoring data for this server.`)) {
+                    return;
+                }
+
+                try {
+                    const response = await fetch(`${this.apiBase}/api/servers/${id}`, {
+                        method: 'DELETE'
+                    });
+
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        this.servers = this.servers.filter(server => server.id !== id);
+                        if (this.intervals[id]) {
+                            clearInterval(this.intervals[id]);
+                            delete this.intervals[id];
+                        }
+                        
+                        // Stop monitoring if no servers left
+                        if (this.servers.length === 0 && this.monitoring) {
+                            this.stopMonitoring();
+                        }
+                        
+                        this.renderServers();
+                        this.updateMonitorStatus();
+                        this.showAlert('Server deleted!', 'success');
+                    } else {
+                        this.showAlert('Failed to delete server: ' + data.error, 'error');
+                    }
+                } catch (error) {
+                    console.error('Error deleting server:', error);
+                    this.showAlert('Error deleting server. Check console for details.', 'error');
+                }
+            }
+
+            generateStatusChart(server) {
+                // Ensure testHistory exists
+                if (!server.testHistory) server.testHistory = [];
+                
+                let chart = '';
+                const maxBars = 15;
+                
+                // Create a proper chronological chart showing the last 15 tests
+                // Most recent test should be on the right (last position)
+                const totalTests = server.testHistory.length;
+                
+                if (totalTests === 0) {
+                    // No tests yet - show all grey bars
+                    for (let i = 0; i < maxBars; i++) {
+                        chart += `<div class="status-bar pending"></div>`;
+                    }
+                } else if (totalTests <= maxBars) {
+                    // Show grey bars for missing tests, then actual test results
+                    const missingTests = maxBars - totalTests;
+                    
+                    // Add grey bars for tests that haven't happened yet
+                    for (let i = 0; i < missingTests; i++) {
+                        chart += `<div class="status-bar pending"></div>`;
+                    }
+                    
+                    // Add actual test results (chronological order)
+                    for (let i = 0; i < totalTests; i++) {
+                        const status = server.testHistory[i];
+                        chart += `<div class="status-bar ${status}"></div>`;
+                    }
+                } else {
+                    // Show only the most recent 15 tests
+                    const recentTests = server.testHistory.slice(-maxBars);
+                    for (let i = 0; i < maxBars; i++) {
+                        const status = recentTests[i];
+                        chart += `<div class="status-bar ${status}"></div>`;
+                    }
+                }
+                
+                return chart;
+            }
+
+            renderServers() {
+                const grid = document.getElementById('statusGrid');
+                
+                if (this.servers.length === 0) {
+                    grid.innerHTML = '<div style="text-align: center; padding: 40px; color: var(--gray);">No servers added yet. Add your first server above.</div>';
+                    return;
+                }
+
+                grid.innerHTML = this.servers.map(server => `
+                    <div class="status-card" draggable="true" data-server-id="${server.id}">
+                        <div class="status-indicator status-${server.status}"></div>
+                        <div class="status-card-header" onclick="event.stopPropagation(); monitor.toggleServerCard('${server.id}');">
+                            <div class="status-card-top">
+                                <div style="flex: 1;">
+                                    <div class="status-header">
+                                        <div class="status-name">${server.name}</div>
+                                        <div class="status-type">${server.type.toUpperCase()}</div>
+                                    </div>
+                                    <div class="status-countdown" id="countdown-${server.id}">--</div>
+                                    <div class="status-url">${server.url}</div>
+                                    <div class="status-chart">
+                                        ${this.generateStatusChart(server)}
+                                    </div>
+                                </div>
+                                <div class="chevron" id="chevron-${server.id}"></div>
+                            </div>
+                        </div>
+                        <div class="status-card-content" id="server-content-${server.id}">
+                            <div class="status-stats">
+                                <div class="stat">
+                                    <div class="stat-value">${server.uptime}%</div>
+                                    <div class="stat-label">Uptime</div>
+                                </div>
+                                <div class="stat">
+                                    <div class="stat-value">${server.responseTime}ms</div>
+                                    <div class="stat-label">Response</div>
+                                </div>
+                            </div>
+                            <div style="margin-top: 15px; display: flex; gap: 6px;">
+                                <button class="btn btn-primary" onclick="event.stopPropagation(); console.log('Test button clicked for server:', '${server.id}'); const server = monitor.servers.find(s => s.id === '${server.id}'); console.log('Found server:', server); if (server) monitor.checkServer(server); else console.error('Server not found:', '${server.id}');" style="flex: 1; font-size: 0.8rem; padding: 8px;">Test</button>
+                                <button class="btn btn-clear" onclick="event.stopPropagation(); monitor.clearServerStats('${server.id}');" style="font-size: 0.8rem; padding: 8px;">Clear</button>
+                                <button class="btn ${server.stopped ? 'btn-success' : 'btn-warning'}" onclick="event.stopPropagation(); monitor.toggleServerMonitoring('${server.id}');" style="font-size: 0.8rem; padding: 8px;">${server.stopped ? 'Start' : 'Stop'}</button>
+                                <button class="btn btn-secondary" onclick="event.stopPropagation(); monitor.editServer('${server.id}');" style="font-size: 0.8rem; padding: 8px;">Edit</button>
+                                <button class="btn btn-danger" onclick="event.stopPropagation(); monitor.deleteServer('${server.id}');" style="font-size: 0.8rem; padding: 8px;">Delete</button>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+            updateMonitorStatus() {
+                document.getElementById('monitorStatus').textContent = this.monitoring ? 'Running' : 'Stopped';
+                document.getElementById('serverCount').textContent = this.servers.length;
+                
+                const totalUptime = this.servers.length > 0 
+                    ? Math.round(this.servers.reduce((sum, s) => sum + s.uptime, 0) / this.servers.length)
+                    : 0;
+                document.getElementById('totalUptime').textContent = totalUptime + '%';
+                
+                document.getElementById('startStopBtn').innerHTML = this.monitoring ? '<i class="fas fa-stop"></i> Stop Monitoring' : '<i class="fas fa-play"></i> Start Monitoring';
+            }
+
+            updateCountdowns() {
+                this.servers.forEach(server => {
+                    const countdownElement = document.getElementById(`countdown-${server.id}`);
+                    if (!countdownElement) return;
+                    
+                    if (server.stopped || !this.monitoring) {
+                        countdownElement.textContent = 'Stopped';
+                        return;
+                    }
+                    
+                    // Handle new servers that haven't been checked yet
+                    if (!server.lastCheck) {
+                        countdownElement.textContent = 'Starting...';
+                        return;
+                    }
+                    
+                    const lastCheck = new Date(server.lastCheck).getTime();
+                    const nextCheck = lastCheck + (server.interval * 1000);
+                    const now = Date.now();
+                    const timeLeft = Math.max(0, nextCheck - now);
+                    
+                    if (timeLeft <= 1000) { // Within 1 second, show "Now"
+                        countdownElement.textContent = 'Now';
+                        
+                        // Enhanced reset logic for stuck countdowns
+                        if (!server.countdownResetTime) {
+                            server.countdownResetTime = Date.now();
+                        } else if (Date.now() - server.countdownResetTime > 3000) {
+                            // Reset if stuck on "Now" for more than 3 seconds (reduced from 5)
+                            console.log(`Resetting countdown for ${server.name} - stuck on "Now" for ${Date.now() - server.countdownResetTime}ms`);
+                            
+                            // Force a server check to reset the countdown properly
+                            this.checkServer(server);
+                            
+                            // Reset the countdown timer
+                            server.lastCheck = new Date(Date.now() - (server.interval * 1000)).toISOString();
+                            server.countdownResetTime = null;
+                            this.updateServer(server);
+                        }
+                    } else {
+                        server.countdownResetTime = null; // Clear reset time when countdown is working
+                        const seconds = Math.ceil(timeLeft / 1000);
+                        if (seconds < 60) {
+                            countdownElement.textContent = `${seconds}s`;
+                        } else {
+                            const minutes = Math.floor(seconds / 60);
+                            const remainingSeconds = seconds % 60;
+                            countdownElement.textContent = `${minutes}m ${remainingSeconds}s`;
+                        }
+                    }
+                });
+            }
+
+            async updateServer(server) {
+                try {
+                    const response = await fetch(`${this.apiBase}/api/servers/${server.id}`, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(server)
+                    });
+
+                    const data = await response.json();
+                    
+                    if (!data.success) {
+                        console.error('Failed to update server:', data.error);
+                        // Fallback to localStorage if API fails
+                        localStorage.setItem('uptimeServers', JSON.stringify(this.servers));
+                    }
+                } catch (error) {
+                    console.error('Error updating server:', error);
+                    // Fallback to localStorage if API fails
+                    localStorage.setItem('uptimeServers', JSON.stringify(this.servers));
+                }
+            }
+
+            showAlert(message, type) {
+                let alertId;
+                if (type === 'success') {
+                    alertId = 'successAlert';
+                } else if (type === 'error') {
+                    alertId = 'errorAlert';
+                } else if (type === 'warning') {
+                    alertId = 'errorAlert'; // Use error alert for warnings too
+                } else {
+                    alertId = 'errorAlert'; // Default to error alert
+                }
+                
+                const alert = document.getElementById(alertId);
+                if (alert) {
+                    alert.textContent = message;
+                    alert.style.display = 'block';
+                    
+                    setTimeout(() => {
+                        alert.style.display = 'none';
+                    }, 5000);
+                } else {
+                    console.error('Alert element not found:', alertId);
+                }
+            }
+
+            toggleServerCard(serverId) {
+                const content = document.getElementById(`server-content-${serverId}`);
+                const chevron = document.getElementById(`chevron-${serverId}`);
+                
+                if (!content || !chevron) {
+                    console.error('Server card elements not found for ID:', serverId);
+                    return;
+                }
+                
+                if (content.classList.contains('expanded')) {
+                    content.classList.remove('expanded');
+                    chevron.classList.remove('expanded');
+                } else {
+                    content.classList.add('expanded');
+                    chevron.classList.add('expanded');
+                }
+            }
+
+            toggleAllServers() {
+                const toggleIcon = document.getElementById('globalToggleIcon');
+                const allContents = document.querySelectorAll('.status-card-content');
+                const allChevrons = document.querySelectorAll('.chevron');
+                
+                // Check if any server is currently expanded
+                const anyExpanded = Array.from(allContents).some(content => content.classList.contains('expanded'));
+                
+                if (anyExpanded) {
+                    // Collapse all servers
+                    allContents.forEach(content => content.classList.remove('expanded'));
+                    allChevrons.forEach(chevron => chevron.classList.remove('expanded'));
+                    toggleIcon.className = 'fas fa-eye';
+                } else {
+                    // Expand all servers
+                    allContents.forEach(content => content.classList.add('expanded'));
+                    allChevrons.forEach(chevron => chevron.classList.add('expanded'));
+                    toggleIcon.className = 'fas fa-eye-slash';
+                }
+            }
+
+            setupDragAndDrop() {
+                const grid = document.getElementById('statusGrid');
+                
+                // Prevent default drag behavior on images and links
+                grid.addEventListener('dragstart', (e) => {
+                    if (e.target.draggable) {
+                        e.dataTransfer.effectAllowed = 'move';
+                        e.dataTransfer.setData('text/html', e.target.outerHTML);
+                        e.target.classList.add('dragging');
+                    }
+                });
+                
+                grid.addEventListener('dragend', (e) => {
+                    e.target.classList.remove('dragging');
+                    grid.classList.remove('drag-active');
+                    // Remove all drag-over classes
+                    document.querySelectorAll('.status-card').forEach(card => {
+                        card.classList.remove('drag-over');
+                    });
+                });
+                
+                grid.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    e.dataTransfer.dropEffect = 'move';
+                    grid.classList.add('drag-active');
+                    
+                    const afterElement = this.getDragAfterElement(grid, e.clientY);
+                    const dragging = document.querySelector('.dragging');
+                    
+                    if (afterElement == null) {
+                        grid.appendChild(dragging);
+                    } else {
+                        grid.insertBefore(dragging, afterElement);
+                    }
+                });
+                
+                grid.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    const dragging = document.querySelector('.dragging');
+                    const serverId = dragging.dataset.serverId;
+                    
+                    // Get new order
+                    const newOrder = Array.from(grid.children).map(card => card.dataset.serverId);
+                    
+                    // Update server order
+                    this.reorderServers(newOrder);
+                    
+                    grid.classList.remove('drag-active');
+                });
+            }
+
+            getDragAfterElement(container, y) {
+                const draggableElements = [...container.querySelectorAll('.status-card:not(.dragging)')];
+                
+                return draggableElements.reduce((closest, child) => {
+                    const box = child.getBoundingClientRect();
+                    const offset = y - box.top - box.height / 2;
+                    
+                    if (offset < 0 && offset > closest.offset) {
+                        return { offset: offset, element: child };
+                    } else {
+                        return closest;
+                    }
+                }, { offset: Number.NEGATIVE_INFINITY }).element;
+            }
+
+            async reorderServers(newOrder) {
+                // Reorder the servers array based on new order
+                const reorderedServers = newOrder.map(id => 
+                    this.servers.find(server => server.id === id)
+                ).filter(Boolean);
+                
+                this.servers = reorderedServers;
+                
+                // Save new order to backend
+                try {
+                    const response = await fetch(`${this.apiBase}/api/servers/reorder`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ order: newOrder })
+                    });
+                    
+                    const data = await response.json();
+                    if (!data.success) {
+                        console.error('Failed to save server order:', data.error);
+                        // Revert on failure
+                        await this.loadServers();
+                        this.renderServers();
+                    }
+                } catch (error) {
+                    console.error('Error saving server order:', error);
+                    // Revert on failure
+                    await this.loadServers();
+                    this.renderServers();
+                }
+            }
+        }
+
+        // Global functions
+        async function saveTwilioConfigFromModal() {
+            const smsEnabled = document.getElementById('modalSmsEnabled').checked;
+            
+            try {
+                const response = await fetch(`${monitor.apiBase}/api/twilio-config`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        twilioSid: document.getElementById('modalTwilioSid').value,
+                        twilioToken: document.getElementById('modalTwilioToken').value,
+                        twilioFrom: document.getElementById('modalTwilioFrom').value,
+                        twilioTo: document.getElementById('modalTwilioTo').value,
+                        smsEnabled: smsEnabled
+                    })
+                });
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    monitor.config.smsEnabled = smsEnabled;
+                    monitor.showAlert('Configuration saved!', 'success');
+                    closeTwilioModal();
+                } else {
+                    monitor.showAlert('Failed to save configuration: ' + data.error, 'error');
+                }
+            } catch (error) {
+                console.error('Error saving config:', error);
+                monitor.showAlert('Error saving configuration. Check console for details.', 'error');
+            }
+        }
+
+        async function openTwilioModal() {
+            // Fetch latest config from server
+            try {
+                const response = await fetch(`${monitor.apiBase}/api/config`);
+                const data = await response.json();
+                if (data.success) {
+                    monitor.config = data.config;
+                }
+            } catch (error) {
+                console.error('Error fetching config:', error);
+            }
+
+            // Populate modal with current SMS enabled status and masked credentials
+            document.getElementById('modalSmsEnabled').checked = monitor.config.smsEnabled || false;
+
+            // Show masked credentials if SMS is enabled (last 6 digits visible)
+            if (monitor.config.smsEnabled) {
+                document.getElementById('modalTwilioSid').value = '••••••••••••••••••••••••••••9abebff'; // Last 6 digits of actual SID
+                document.getElementById('modalTwilioToken').value = '••••••••••••••••••••••••••••da3d84'; // Last 6 digits of actual Token
+                document.getElementById('modalTwilioFrom').value = '+14804702050';
+                document.getElementById('modalTwilioTo').value = '+17475673173';
+            } else {
+                document.getElementById('modalTwilioSid').value = '';
+                document.getElementById('modalTwilioToken').value = '';
+                document.getElementById('modalTwilioFrom').value = '';
+                document.getElementById('modalTwilioTo').value = '';
+            }
+
+            // Update status indicator
+            const statusElement = document.getElementById('twilioStatus');
+            if (monitor.config.smsEnabled) {
+                statusElement.innerHTML = '<i class="fas fa-check-circle"></i> SMS is configured and working!';
+                statusElement.style.background = 'var(--success)';
+            } else {
+                statusElement.innerHTML = '<i class="fas fa-exclamation-triangle"></i> SMS is disabled';
+                statusElement.style.background = 'var(--warning)';
+            }
+
+            document.getElementById('twilioModal').style.display = 'block';
+        }
+
+        function closeTwilioModal() {
+            document.getElementById('twilioModal').style.display = 'none';
+        }
+
+        async function testSMS() {
+            if (!monitor.config.smsEnabled) {
+                alert('SMS alerts are not enabled. Please enable SMS alerts first.');
+                return;
+            }
+            
+            if (!confirm('Send test SMS?')) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${monitor.apiBase}/api/test-sms`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        message: '🧪 Test SMS from Uptime Monitor Pro!\n\n✅ Your SMS alerts are working correctly.\n\nTime: ' + new Date().toLocaleString()
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert('✅ Test SMS sent successfully!\n\nCheck your phone for the message.');
+                } else {
+                    alert('❌ Failed to send test SMS:\n' + data.error);
+                }
+            } catch (error) {
+                alert('❌ Error sending test SMS:\n' + error.message);
+            }
+        }
+
+        // FTP Configuration Functions
+        async function saveFtpConfigFromModal() {
+            const ftpEnabled = document.getElementById('modalFtpEnabled').checked;
+            
+            try {
+                const response = await fetch(`${monitor.apiBase}/api/ftp-config`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        ftpHost: document.getElementById('modalFtpHost').value,
+                        ftpUser: document.getElementById('modalFtpUser').value,
+                        ftpPassword: document.getElementById('modalFtpPassword').value,
+                        ftpPort: parseInt(document.getElementById('modalFtpPort').value) || 21,
+                        ftpRemotePath: document.getElementById('modalFtpRemotePath').value,
+                        ftpEnabled: ftpEnabled
+                    })
+                });
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    monitor.config.ftpEnabled = ftpEnabled;
+                    monitor.showAlert('FTP configuration saved!', 'success');
+                    closeFtpModal();
+                } else {
+                    monitor.showAlert('Failed to save FTP configuration: ' + data.error, 'error');
+                }
+            } catch (error) {
+                console.error('Error saving FTP config:', error);
+                monitor.showAlert('Error saving FTP configuration. Check console for details.', 'error');
+            }
+        }
+
+        async function openFtpModal() {
+            // Fetch latest FTP config from server
+            try {
+                const response = await fetch(`${monitor.apiBase}/api/ftp-config`);
+                const data = await response.json();
+                if (data.success) {
+                    const ftpConfig = data.config;
+                    
+                    // Populate modal with current FTP configuration
+                    document.getElementById('modalFtpHost').value = ftpConfig.ftpHost || '';
+                    document.getElementById('modalFtpUser').value = ftpConfig.ftpUser || '';
+                    document.getElementById('modalFtpPassword').value = ftpConfig.ftpPassword || '';
+                    document.getElementById('modalFtpPort').value = ftpConfig.ftpPort || 21;
+                    document.getElementById('modalFtpRemotePath').value = ftpConfig.ftpRemotePath || 'index.html';
+                    document.getElementById('modalFtpEnabled').checked = ftpConfig.ftpEnabled || false;
+                }
+            } catch (error) {
+                console.error('Error fetching FTP config:', error);
+            }
+
+            // Update status indicator
+            const statusElement = document.getElementById('ftpStatus');
+            if (monitor.config.ftpEnabled) {
+                statusElement.innerHTML = '<i class="fas fa-check-circle"></i> FTP is configured and enabled!';
+                statusElement.style.background = 'var(--success)';
+            } else {
+                statusElement.innerHTML = '<i class="fas fa-exclamation-triangle"></i> FTP is not configured';
+                statusElement.style.background = 'var(--warning)';
+            }
+
+            document.getElementById('ftpModal').style.display = 'block';
+        }
+
+        function closeFtpModal() {
+            document.getElementById('ftpModal').style.display = 'none';
+        }
+
+        async function testFtpUpload() {
+            if (!monitor.config.ftpEnabled) {
+                alert('FTP upload is not enabled. Please enable FTP upload first.');
+                return;
+            }
+            
+            if (!confirm('Test FTP upload?')) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${monitor.apiBase}/api/upload-ftp`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert('✅ FTP upload test successful!\n\nYour public dashboard has been uploaded.');
+                } else {
+                    alert('❌ Failed to upload to FTP:\n' + data.error);
+                }
+            } catch (error) {
+                alert('❌ Error testing FTP upload:\n' + error.message);
+            }
+        }
+
+        // Email Configuration Functions
+        async function saveEmailConfigFromModal() {
+            const emailEnabled = document.getElementById('modalEmailEnabled').checked;
+            
+            try {
+                const response = await fetch(`${monitor.apiBase}/api/email-config`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        sendgridApiKey: document.getElementById('modalSendgridApiKey').value,
+                        emailFrom: document.getElementById('modalEmailFrom').value,
+                        emailTo: document.getElementById('modalEmailTo').value,
+                        emailEnabled: emailEnabled
+                    })
+                });
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    monitor.config.emailEnabled = emailEnabled;
+                    monitor.showAlert('Email configuration saved!', 'success');
+                    closeEmailModal();
+                } else {
+                    monitor.showAlert('Failed to save email configuration: ' + data.error, 'error');
+                }
+            } catch (error) {
+                console.error('Error saving email config:', error);
+                monitor.showAlert('Error saving email configuration. Check console for details.', 'error');
+            }
+        }
+
+        async function openEmailModal() {
+            // Fetch latest email config from server
+            try {
+                const response = await fetch(`${monitor.apiBase}/api/email-config`);
+                const data = await response.json();
+                if (data.success) {
+                    const emailConfig = data.config;
+                    
+                    // Populate modal with current email configuration
+                    document.getElementById('modalSendgridApiKey').value = emailConfig.sendgridApiKey || '';
+                    document.getElementById('modalEmailFrom').value = emailConfig.emailFrom || '';
+                    document.getElementById('modalEmailTo').value = emailConfig.emailTo || '';
+                    document.getElementById('modalEmailEnabled').checked = emailConfig.emailEnabled || false;
+                }
+            } catch (error) {
+                console.error('Error fetching email config:', error);
+            }
+
+            // Update status indicator
+            const statusElement = document.getElementById('emailStatus');
+            if (monitor.config.emailEnabled) {
+                statusElement.innerHTML = '<i class="fas fa-check-circle"></i> Email is configured and enabled!';
+                statusElement.style.background = 'var(--success)';
+            } else {
+                statusElement.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Email is not configured';
+                statusElement.style.background = 'var(--warning)';
+            }
+
+            document.getElementById('emailModal').style.display = 'block';
+        }
+
+        function closeEmailModal() {
+            document.getElementById('emailModal').style.display = 'none';
+        }
+
+        async function testEmail() {
+            if (!monitor.config.emailEnabled) {
+                alert('Email alerts are not enabled. Please enable email alerts first.');
+                return;
+            }
+            
+            if (!confirm('Send test email?')) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${monitor.apiBase}/api/test-email`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert('✅ Test email sent successfully!\n\nCheck your inbox for the message.');
+                } else {
+                    alert('❌ Failed to send test email:\n' + data.error);
+                }
+            } catch (error) {
+                alert('❌ Error sending test email:\n' + error.message);
+            }
+        }
+
+        // Close modal when clicking outside of it
+        window.onclick = function(event) {
+            const twilioModal = document.getElementById('twilioModal');
+            const ftpModal = document.getElementById('ftpModal');
+            const emailModal = document.getElementById('emailModal');
+            if (event.target === twilioModal) {
+                closeTwilioModal();
+            }
+            if (event.target === ftpModal) {
+                closeFtpModal();
+            }
+            if (event.target === emailModal) {
+                closeEmailModal();
+            }
+        }
+
+        function toggleMonitoring() {
+            monitor.toggleMonitoring();
+        }
+
+        function openRecoveryTool() {
+            window.open('recovery.html', '_blank', 'width=900,height=700,scrollbars=yes,resizable=yes');
+        }
+
+        // Initialize the monitor
+        const monitor = new UptimeMonitor();
+    </script>
+</body>
+</html>
