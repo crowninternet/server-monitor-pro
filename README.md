@@ -1,132 +1,153 @@
 # Uptime Monitor Pro
 
-A modern, secure uptime monitoring application similar to Uptime Kuma, built with HTML, CSS, JavaScript, and Node.js.
+A powerful, self-hosted server monitoring solution with SMS alerts and FTP upload capabilities.
 
-## Features
+## 🚀 Quick Installation
 
-- **Multi-protocol monitoring**: HTTPS, HTTP, Ping, DNS, TCP
-- **SMS alerts**: Twilio integration for downtime notifications
-- **Real-time status**: Live monitoring with countdown timers
-- **Visual charts**: Status history with green/red/yellow indicators
-- **Secure storage**: Credentials stored server-side outside web root
-- **Modern UI**: Responsive design with glassmorphism effects
-- **Auto-start**: macOS launchd integration for automatic startup
+### One-Click Install (Recommended)
 
-## Security Features
+```bash
+# Download and run the installer
+chmod +x install.sh
+./install.sh
+```
 
-- Twilio credentials stored securely in `../secure-data/` directory
-- No sensitive data exposed via web browser
-- Server-side API endpoints for SMS functionality
-- Masked credential display in UI (last 6 digits only)
+### Manual Installation
 
-## Installation
+See [INSTALLATION.md](INSTALLATION.md) for detailed manual installation instructions.
 
-1. **Clone the repository**:
-   ```bash
-   git clone <your-repo-url>
-   cd uptime-monitor
-   ```
+## ✨ Features
 
-2. **Install dependencies**:
-   ```bash
-   npm install
-   ```
+- **Real-time Monitoring** - Monitor HTTP/HTTPS, Ping, DNS, TCP, and Cloudflare-protected sites
+- **SMS Alerts** - Get instant notifications via Twilio when servers go down
+- **FTP Upload** - Automatically upload public status pages to your web server
+- **Persistent Storage** - File-based storage that persists across browser sessions
+- **Auto-start Service** - Runs automatically on macOS startup
+- **Modern UI** - Beautiful, responsive web interface
+- **Drag & Drop** - Reorder servers with drag and drop
+- **Status History** - Visual status charts showing uptime history
+- **Recovery Tools** - Built-in recovery and troubleshooting tools
 
-3. **Set up secure data directory**:
-   ```bash
-   mkdir -p ../secure-data
-   ```
+## 🎯 Getting Started
 
-4. **Configure Twilio (optional)**:
-   - Create a `../secure-data/config.json` file with your Twilio credentials
-   - Or use the SMS Settings modal in the web interface
+1. **Install** using the one-click installer
+2. **Access** the web interface at `http://localhost:3000`
+3. **Add servers** to monitor
+4. **Configure SMS alerts** (optional)
+5. **Set up FTP upload** (optional)
 
-5. **Start the application**:
-   ```bash
-   node uptime-monitor-api.js
-   ```
+## 🛠️ Management
 
-6. **Access the web interface**:
-   Open `http://localhost:3000` in your browser
+After installation, use the management script:
 
-## Auto-start on macOS
+```bash
+cd ~/Documents/uptime-monitor
 
-To run the monitor automatically on system startup:
+# Start the service
+./manage-uptime-monitor.sh start
 
-1. **Install the launchd service**:
-   ```bash
-   ./manage-uptime-monitor.sh install
-   ```
+# Stop the service
+./manage-uptime-monitor.sh stop
 
-2. **Start the service**:
-   ```bash
-   ./manage-uptime-monitor.sh start
-   ```
+# Check status
+./manage-uptime-monitor.sh status
 
-3. **Check status**:
-   ```bash
-   ./manage-uptime-monitor.sh status
-   ```
+# View logs
+./manage-uptime-monitor.sh logs
 
-## Usage
+# Uninstall
+./manage-uptime-monitor.sh uninstall
+```
 
-1. **Add servers**: Use the "Add New Server" form to monitor websites
-2. **Configure SMS**: Click "SMS Settings" to set up Twilio notifications
-3. **Monitor status**: View real-time status and uptime statistics
-4. **Test manually**: Use the "Test" button for immediate checks
-
-## Monitoring Types
-
-- **HTTPS/HTTP**: HEAD request to check website availability
-- **Ping**: Simple connectivity test with favicon fallback
-- **DNS**: Domain name resolution test using Google DNS
-- **TCP**: Port connectivity test via WebSocket
-
-## SMS Alert Logic
-
-- **3-strike rule**: HTTP/HTTPS servers marked as "warning" (yellow) after 1-2 failures, "down" (red) after 3 consecutive failures
-- **First down alert**: SMS sent only on first "down" status, not repeatedly
-- **Back online alert**: SMS sent when server recovers from down status
-- **Test SMS**: Use "Test SMS" button to verify Twilio configuration
-
-## File Structure
+## 📁 Project Structure
 
 ```
 uptime-monitor/
-├── index.html              # Main web application
-├── uptime-monitor-api.js   # Node.js backend API
-├── package.json            # Node.js dependencies
-├── manage-uptime-monitor.sh # macOS service management
-├── com.uptimemonitor.plist # macOS launchd configuration
-└── ../secure-data/         # Secure credential storage (outside web root)
-    ├── config.json         # Twilio credentials
-    └── servers.json        # Server monitoring data
+├── install.sh                          # One-click installer
+├── INSTALLATION.md                     # Detailed installation guide
+├── manage-uptime-monitor.sh.template   # Management script template
+├── com.uptimemonitor.plist.template    # Launch agent template
+├── index.html                          # Main web interface
+├── uptime-monitor-api.js               # Backend API server
+├── recovery.html                       # Recovery tool
+├── package.json                        # Node.js dependencies
+└── secure-data/                        # Data storage (auto-created)
+    ├── servers.json                    # Monitored servers
+    └── config.json                     # Configuration
 ```
 
-## API Endpoints
+## 🔧 Configuration
 
-- `GET /api/servers` - Get all monitored servers
-- `POST /api/servers` - Add new server
-- `PUT /api/servers/:id` - Update server
-- `DELETE /api/servers/:id` - Remove server
-- `GET /api/config` - Get SMS configuration status
-- `POST /api/twilio-config` - Save Twilio credentials
-- `POST /api/send-sms` - Send SMS alert
-- `POST /api/test-sms` - Send test SMS
+### SMS Alerts (Twilio)
+1. Sign up for a Twilio account
+2. Get your Account SID and Auth Token
+3. Purchase a phone number
+4. Configure in the web interface
 
-## Security Notes
+### FTP Upload
+1. Set up FTP server credentials
+2. Configure upload settings
+3. Enable automatic uploads
 
-- Never commit the `../secure-data/` directory to version control
-- Twilio credentials are masked in the UI (only last 6 digits visible)
-- All sensitive operations handled server-side
-- Static file serving restricted to prevent credential exposure
+## 📊 Monitoring Types
 
-## Requirements
+- **HTTPS/HTTP** - Web server monitoring with 3-strike failure detection
+- **Ping** - Basic connectivity testing
+- **DNS** - Domain name resolution checking
+- **TCP** - Port connectivity testing
+- **Cloudflare** - Specialized monitoring for Cloudflare-protected sites
 
-- Node.js 14+
-- Twilio account (for SMS alerts)
-- macOS (for auto-start functionality)
+## 🚨 Troubleshooting
 
-## License
+### Service Issues
+```bash
+# Check service status
+./manage-uptime-monitor.sh status
 
-MIT License - See LICENSE file for details
+# View logs
+./manage-uptime-monitor.sh logs
+
+# Restart service
+./manage-uptime-monitor.sh restart
+```
+
+### Common Problems
+- **Port 3000 in use**: Kill the process using port 3000
+- **Node.js not found**: Reinstall Node.js via Homebrew
+- **Permission issues**: Check file permissions and ownership
+- **Service won't start**: Check logs for error messages
+
+## 🔄 Updates
+
+To update to a newer version:
+
+1. Stop the service: `./manage-uptime-monitor.sh stop`
+2. Backup your data: `cp -r secure-data secure-data-backup`
+3. Replace the application files
+4. Update dependencies: `npm install`
+5. Start the service: `./manage-uptime-monitor.sh start`
+
+## 🗑️ Uninstallation
+
+```bash
+# Complete removal
+./manage-uptime-monitor.sh uninstall
+```
+
+## 📞 Support
+
+- Check the logs: `./manage-uptime-monitor.sh logs`
+- Verify service status: `./manage-uptime-monitor.sh status`
+- Test API: `curl http://localhost:3000/api/health`
+
+## 📄 License
+
+MIT License - see LICENSE file for details.
+
+## 🤝 Contributing
+
+Contributions are welcome! Please feel free to submit pull requests or open issues.
+
+---
+
+**Uptime Monitor Pro** - Keep your servers running smoothly! 🚀
