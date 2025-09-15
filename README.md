@@ -1,6 +1,7 @@
 # Uptime Monitor Pro
+## Version 1.2.0 - Now with Email Settings (SendGrid) Support
 
-A powerful, self-hosted server monitoring solution with SMS alerts and FTP upload capabilities.
+A powerful, self-hosted server monitoring solution with SMS, Email, and FTP capabilities.
 
 ## 🚀 Quick Installation
 
