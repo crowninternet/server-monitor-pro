@@ -21,6 +21,7 @@ See [INSTALLATION.md](INSTALLATION.md) for detailed manual installation instruct
 
 - **Real-time Monitoring** - Monitor HTTP/HTTPS, Ping, DNS, TCP, and Cloudflare-protected sites
 - **SMS Alerts** - Get instant notifications via Twilio when servers go down
+- **Email Alerts** - Professional email notifications via SendGrid when servers go down or come back online
 - **FTP Upload** - Automatically upload public status pages to your web server
 - **Persistent Storage** - File-based storage that persists across browser sessions
 - **Auto-start Service** - Runs automatically on macOS startup
@@ -35,7 +36,8 @@ See [INSTALLATION.md](INSTALLATION.md) for detailed manual installation instruct
 2. **Access** the web interface at `http://localhost:3000`
 3. **Add servers** to monitor
 4. **Configure SMS alerts** (optional)
-5. **Set up FTP upload** (optional)
+5. **Configure Email alerts** (optional)
+6. **Set up FTP upload** (optional)
 
 ## 🛠️ Management
 
@@ -84,6 +86,40 @@ uptime-monitor/
 2. Get your Account SID and Auth Token
 3. Purchase a phone number
 4. Configure in the web interface
+
+### Email Alerts (SendGrid) - NEW in v1.2.0
+1. **Sign up for SendGrid**
+   - Create a free account at [sendgrid.com](https://sendgrid.com)
+   - Verify your email address
+   - Complete account setup
+
+2. **Create API Key**
+   - Go to Settings → API Keys
+   - Click "Create API Key"
+   - Choose "Restricted Access" for security
+   - Grant "Mail Send" permissions
+   - Copy the API key (you won't see it again!)
+
+3. **Verify Sender Identity**
+   - Go to Settings → Sender Authentication
+   - Choose "Single Sender Verification" (free)
+   - Add your email address
+   - Verify via email confirmation
+
+4. **Configure in Web Interface**
+   - Open `http://localhost:3000`
+   - Click "Email Settings" button
+   - Enter your SendGrid API Key
+   - Enter your verified sender email
+   - Enter recipient email for alerts
+   - Enable Email alerts toggle
+   - Test the configuration
+
+5. **Professional Email Templates**
+   - Beautiful HTML email alerts
+   - Server status information
+   - Response time details
+   - Timestamp and server details
 
 ### FTP Upload
 1. Set up FTP server credentials
