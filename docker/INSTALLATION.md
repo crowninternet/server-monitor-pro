@@ -1,4 +1,5 @@
 # Uptime Monitor Pro - Installation Guide for Docker
+## Version 1.2.0 - Now with Email Settings (SendGrid) Support
 
 ## 🚀 Quick Start (One-Click Installation)
 
@@ -198,6 +199,16 @@ Edit `docker-compose.yml` to customize:
 3. Enter your Twilio credentials
 4. Enable SMS alerts toggle
 5. Test the configuration
+
+### Email Alerts (Optional) - NEW in v1.2.0
+1. Click "Email Settings" button
+2. Enter your SendGrid credentials:
+   - SendGrid API Key
+   - From Email Address (verified sender)
+   - To Email Address (recipient for alerts)
+3. Enable Email alerts toggle
+4. Test the configuration
+5. Professional HTML email templates included
 
 ### FTP Upload (Optional)
 1. Click "FTP Settings" button
@@ -434,7 +445,8 @@ Once installed and running:
    - Click "Add Server"
 
 2. **Configure alerts:**
-   - Set up SMS alerts for downtime notifications
+   - Set up SMS alerts for downtime notifications (Twilio)
+   - Set up Email alerts for downtime notifications (SendGrid) - NEW!
    - Configure FTP upload for public status pages
 
 3. **Monitor your servers:**

@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Uptime Monitor Pro - One-Click Install Script for Ubuntu 24.04 Server
-# Version 1.0.0
+# Version 1.2.0 - Updated with Email Settings (SendGrid) Support
 # Compatible with Ubuntu 24.04 LTS and later
 
 set -e  # Exit on any error
@@ -40,6 +40,7 @@ print_header() {
     echo -e "${PURPLE}================================${NC}"
     echo -e "${PURPLE}  Uptime Monitor Pro Installer${NC}"
     echo -e "${PURPLE}  Ubuntu 24.04 Server Edition${NC}"
+    echo -e "${PURPLE}  Version 1.2.0 - Email Support${NC}"
     echo -e "${PURPLE}================================${NC}"
     echo ""
 }
@@ -532,8 +533,14 @@ show_completion_message() {
     echo -e "${PURPLE}Next steps:${NC}"
     echo -e "   1. Open ${BLUE}http://localhost:3000${NC} in your browser"
     echo -e "   2. Add your first server to monitor"
-    echo -e "   3. Configure SMS alerts (optional)"
-    echo -e "   4. Set up FTP upload (optional)"
+    echo -e "   3. Configure SMS alerts (Twilio) - optional"
+    echo -e "   4. Configure Email alerts (SendGrid) - optional"
+    echo -e "   5. Set up FTP upload - optional"
+    echo ""
+    echo -e "${YELLOW}New in v1.2.0:${NC}"
+    echo -e "   📧 ${GREEN}Email Settings${NC} - SendGrid integration for email alerts"
+    echo -e "   🔧 ${GREEN}Enhanced Reliability${NC} - Improved FTP retry logic"
+    echo -e "   ⏱️  ${GREEN}Countdown Fixes${NC} - Resolved concurrent check issues"
     echo ""
     echo -e "${GREEN}Happy monitoring! 🚀${NC}"
 }
