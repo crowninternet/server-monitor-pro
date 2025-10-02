@@ -326,8 +326,31 @@
         .status-url {
             color: var(--gray);
             font-size: 0.9rem;
-            margin-bottom: 10px;
+            margin-bottom: 5px;
             word-break: break-all;
+        }
+
+        .status-checks {
+            color: var(--gray);
+            font-size: 0.8rem;
+            margin-bottom: 10px;
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .check-count {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .check-count.up {
+            color: var(--success);
+        }
+
+        .check-count.down {
+            color: var(--danger);
         }
 
         .status-stats {
@@ -768,6 +791,9 @@
             <div class="form-group">
                 <label for="modalSendgridApiKey">SendGrid API Key</label>
                 <input type="password" id="modalSendgridApiKey" placeholder="SG.xxxxxxxxxxxxxxxxxxxxxxxxxx">
+                <div style="font-size: 0.85rem; color: #888; margin-top: 5px;">
+                    <i class="fas fa-info-circle"></i> If key is saved, click field to enter a new one
+                </div>
             </div>
             <div class="form-group">
                 <label for="modalEmailFrom">From Email</label>
@@ -878,6 +904,9 @@
                 if (this.config.twilioFrom) document.getElementById('modalTwilioFrom').value = this.config.twilioFrom;
                 if (this.config.twilioTo) document.getElementById('modalTwilioTo').value = this.config.twilioTo;
                 if (this.config.smsEnabled) document.getElementById('modalSmsEnabled').checked = this.config.smsEnabled;
+                
+                // Populate email form fields
+                if (this.config.emailEnabled) document.getElementById('modalEmailEnabled').checked = this.config.emailEnabled;
             }
 
             async addServer() {
@@ -1608,6 +1637,16 @@
                                     </div>
                                     <div class="status-countdown" id="countdown-${server.id}">--</div>
                                     <div class="status-url">${server.url}</div>
+                                    <div class="status-checks">
+                                        <div class="check-count up">
+                                            <i class="fas fa-arrow-up"></i>
+                                            <span>${server.totalChecks || 0}</span>
+                                        </div>
+                                        <div class="check-count down">
+                                            <i class="fas fa-arrow-down"></i>
+                                            <span>${(server.totalChecks || 0) - (server.successfulChecks || 0)}</span>
+                                        </div>
+                                    </div>
                                     <div class="status-chart">
                                         ${this.generateStatusChart(server)}
                                     </div>
@@ -2108,19 +2147,27 @@
         // Email Configuration Functions
         async function saveEmailConfigFromModal() {
             const emailEnabled = document.getElementById('modalEmailEnabled').checked;
+            const apiKeyValue = document.getElementById('modalSendgridApiKey').value;
             
             try {
+                // Prepare the request body
+                const requestBody = {
+                    emailFrom: document.getElementById('modalEmailFrom').value,
+                    emailTo: document.getElementById('modalEmailTo').value,
+                    emailEnabled: emailEnabled
+                };
+                
+                // Only include API key if user has entered a new one
+                if (apiKeyValue && apiKeyValue.trim() !== '') {
+                    requestBody.sendgridApiKey = apiKeyValue;
+                }
+                
                 const response = await fetch(`${monitor.apiBase}/api/email-config`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify({
-                        sendgridApiKey: document.getElementById('modalSendgridApiKey').value,
-                        emailFrom: document.getElementById('modalEmailFrom').value,
-                        emailTo: document.getElementById('modalEmailTo').value,
-                        emailEnabled: emailEnabled
-                    })
+                    body: JSON.stringify(requestBody)
                 });
 
                 const data = await response.json();
@@ -2140,14 +2187,38 @@
 
         async function openEmailModal() {
             // Fetch latest email config from server
+            let emailConfig = null;
             try {
                 const response = await fetch(`${monitor.apiBase}/api/email-config`);
                 const data = await response.json();
                 if (data.success) {
-                    const emailConfig = data.config;
+                    emailConfig = data.config;
                     
                     // Populate modal with current email configuration
-                    document.getElementById('modalSendgridApiKey').value = emailConfig.sendgridApiKey || '';
+                    // For API key, show masked value if it exists, otherwise empty
+                    const apiKeyField = document.getElementById('modalSendgridApiKey');
+                    if (emailConfig.sendgridApiKey && emailConfig.sendgridApiKey.includes('••••')) {
+                        apiKeyField.value = emailConfig.sendgridApiKey;
+                        apiKeyField.placeholder = 'API Key is saved (last 6 digits shown)';
+                        // Make field readonly to prevent accidental editing of masked value
+                        apiKeyField.readOnly = true;
+                        apiKeyField.style.color = '#888';
+                        
+                        // Add a button or text to change the key
+                        apiKeyField.onclick = function() {
+                            this.value = '';
+                            this.readOnly = false;
+                            this.style.color = '';
+                            this.placeholder = 'Enter new SendGrid API Key';
+                            this.focus();
+                        };
+                    } else {
+                        apiKeyField.placeholder = 'SG.xxxxxxxxxxxxxxxxxxxxxxxxxx';
+                        apiKeyField.value = emailConfig.sendgridApiKey || '';
+                        apiKeyField.readOnly = false;
+                        apiKeyField.style.color = '';
+                    }
+                    
                     document.getElementById('modalEmailFrom').value = emailConfig.emailFrom || '';
                     document.getElementById('modalEmailTo').value = emailConfig.emailTo || '';
                     document.getElementById('modalEmailEnabled').checked = emailConfig.emailEnabled || false;
@@ -2156,9 +2227,9 @@
                 console.error('Error fetching email config:', error);
             }
 
-            // Update status indicator
+            // Update status indicator based on fetched config
             const statusElement = document.getElementById('emailStatus');
-            if (monitor.config.emailEnabled) {
+            if (emailConfig && emailConfig.emailEnabled) {
                 statusElement.innerHTML = '<i class="fas fa-check-circle"></i> Email is configured and enabled!';
                 statusElement.style.background = 'var(--success)';
             } else {

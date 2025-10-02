@@ -326,8 +326,31 @@ const generatePublicHTML = (servers) => {
         .server-url {
             color: var(--gray);
             font-size: 0.9rem;
-            margin-bottom: 15px;
+            margin-bottom: 5px;
             word-break: break-all;
+        }
+
+        .server-checks {
+            color: var(--gray);
+            font-size: 0.8rem;
+            margin-bottom: 15px;
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .check-count {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .check-count.up {
+            color: var(--success);
+        }
+
+        .check-count.down {
+            color: var(--danger);
         }
 
         .server-stats {
@@ -430,6 +453,16 @@ const generatePublicHTML = (servers) => {
                         <div class="server-type">${server.type.toUpperCase()}</div>
                     </div>
                     <div class="server-url">${server.url}</div>
+                    <div class="server-checks">
+                        <div class="check-count up">
+                            <i class="fas fa-arrow-up"></i>
+                            <span>${server.totalChecks || 0}</span>
+                        </div>
+                        <div class="check-count down">
+                            <i class="fas fa-arrow-down"></i>
+                            <span>${(server.totalChecks || 0) - (server.successfulChecks || 0)}</span>
+                        </div>
+                    </div>
                     <div class="status-chart">
                         ${generateStatusChart(server)}
                     </div>
@@ -489,7 +522,9 @@ const generateStatusChart = (server) => {
 // Middleware
 app.use(cors());
 app.use(express.json());
-app.use(express.static('.')); // Serve static files from current directory
+
+// Serve static files from current directory
+app.use(express.static(__dirname));
 
 // SMS endpoint - now uses server-side Twilio config
 app.post('/api/send-sms', async (req, res) => {
@@ -665,10 +700,11 @@ app.post('/api/servers/reorder', (req, res) => {
 app.get('/api/config', (req, res) => {
     try {
         const config = readConfig();
-        // Return config without sensitive Twilio credentials
+        // Return config without sensitive credentials
         const safeConfig = {
             smsEnabled: config.smsEnabled || false,
             ftpEnabled: config.ftpEnabled || false,
+            emailEnabled: config.emailEnabled || false,
             // Don't return sensitive credentials to frontend
         };
         res.json({ success: true, config: safeConfig });
@@ -686,6 +722,7 @@ app.post('/api/config', (req, res) => {
             const safeConfig = {
                 smsEnabled: config.smsEnabled || false,
                 ftpEnabled: config.ftpEnabled || false,
+                emailEnabled: config.emailEnabled || false,
             };
             res.json({ success: true, config: safeConfig });
         } else {
@@ -920,6 +957,8 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
 
+// Static files now handle recovery.html and other files automatically
+
 // Start server
 app.listen(PORT, () => {
     console.log(`🚀 Uptime Monitor Pro API running on http://localhost:${PORT}`);
@@ -1039,15 +1078,20 @@ app.post('/api/email-config', (req, res) => {
     try {
         const { sendgridApiKey, emailFrom, emailTo, emailEnabled } = req.body;
         
-        if (!sendgridApiKey || !emailFrom || !emailTo) {
+        if (!emailFrom || !emailTo) {
             return res.status(400).json({ 
                 success: false, 
-                error: 'Missing required email parameters' 
+                error: 'Missing required email parameters (emailFrom, emailTo)' 
             });
         }
 
         const config = readConfig();
-        config.sendgridApiKey = sendgridApiKey;
+        
+        // Only update API key if a new one is provided
+        if (sendgridApiKey && sendgridApiKey.trim() !== '') {
+            config.sendgridApiKey = sendgridApiKey;
+        }
+        
         config.emailFrom = emailFrom;
         config.emailTo = emailTo;
         config.emailEnabled = emailEnabled || false;
@@ -1070,7 +1114,7 @@ app.get('/api/email-config', (req, res) => {
         const config = readConfig();
         
         const emailConfig = {
-            sendgridApiKey: config.sendgridApiKey ? '••••••••••••••••••••••••••••' + config.sendgridApiKey.slice(-4) : '',
+            sendgridApiKey: config.sendgridApiKey ? '••••••••••••••••••••••••••••' + config.sendgridApiKey.slice(-6) : '',
             emailFrom: config.emailFrom || '',
             emailTo: config.emailTo || '',
             emailEnabled: config.emailEnabled || false
