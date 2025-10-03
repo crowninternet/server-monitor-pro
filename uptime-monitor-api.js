@@ -456,7 +456,7 @@ const generatePublicHTML = (servers) => {
                     <div class="server-checks">
                         <div class="check-count up">
                             <i class="fas fa-arrow-up"></i>
-                            <span>${server.totalChecks || 0}</span>
+                            <span>${server.successfulChecks || 0}</span>
                         </div>
                         <div class="check-count down">
                             <i class="fas fa-arrow-down"></i>
@@ -1087,9 +1087,17 @@ app.post('/api/email-config', (req, res) => {
 
         const config = readConfig();
         
-        // Only update API key if a new one is provided
-        if (sendgridApiKey && sendgridApiKey.trim() !== '') {
-            config.sendgridApiKey = sendgridApiKey;
+        // Only update API key if a new one is provided and it's not a masked value
+        if (sendgridApiKey && sendgridApiKey.trim() !== '' && !sendgridApiKey.includes('••••')) {
+            // Validate that the API key starts with 'SG.' (SendGrid format)
+            if (sendgridApiKey.startsWith('SG.')) {
+                config.sendgridApiKey = sendgridApiKey;
+            } else {
+                return res.status(400).json({ 
+                    success: false, 
+                    error: 'Invalid SendGrid API key format. Key must start with "SG."' 
+                });
+            }
         }
         
         config.emailFrom = emailFrom;

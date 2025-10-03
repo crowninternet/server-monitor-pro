@@ -653,8 +653,9 @@
                         <strong>Monitoring:</strong> <span id="monitorStatus">Starting...</span><br>
                         <small>Servers: <span id="serverCount">0</span> | Uptime Average: <span id="totalUptime">0%</span></small>
                     </div>
-                    <div style="display: flex; gap: 10px;">
+                    <div style="display: flex; gap: 10px; flex-direction: column;">
                         <button id="startStopBtn" class="btn btn-primary" onclick="toggleMonitoring()" style="flex: 1;"><i class="fas fa-play"></i> Start Monitoring</button>
+                        <button class="btn btn-primary" onclick="clearAllServerStats()" style="flex: 1;"><i class="fas fa-trash-alt"></i> Clear All Stats</button>
                     </div>
                 </div>
 
@@ -1452,6 +1453,50 @@
                 this.showAlert(`${server.name} statistics cleared`, 'success');
             }
 
+            async clearAllServerStats() {
+                if (this.servers.length === 0) {
+                    this.showAlert('No servers to clear statistics for', 'warning');
+                    return;
+                }
+
+                // Confirm before clearing all stats
+                if (!confirm(`⚠️ WARNING: Are you sure you want to clear ALL statistics for ALL servers?\n\nThis will reset:\n• Uptime percentages\n• Response times\n• Test history\n• Check counts\n\nThis action cannot be undone!`)) {
+                    return;
+                }
+
+                // Clear stats for all servers
+                for (const server of this.servers) {
+                    server.status = 'unknown';
+                    server.lastCheck = new Date(Date.now() - (server.interval * 1000)).toISOString();
+                    server.uptime = 100;
+                    server.responseTime = 0;
+                    server.totalChecks = 0;
+                    server.successfulChecks = 0;
+                    server.testHistory = [];
+                    server.consecutiveFailures = 0;
+                    server.countdownResetTime = null;
+
+                    // Save the updated server data
+                    await this.updateServer(server);
+                }
+
+                this.renderServers();
+                this.updateMonitorStatus();
+                
+                // Trigger immediate checks for all active servers
+                if (this.monitoring) {
+                    setTimeout(() => {
+                        this.servers.forEach(server => {
+                            if (!server.stopped) {
+                                this.checkServer(server);
+                            }
+                        });
+                    }, 100);
+                }
+                
+                this.showAlert('All server statistics cleared successfully', 'success');
+            }
+
             editServer(id) {
                 const server = this.servers.find(s => s.id === id);
                 if (!server) return;
@@ -1640,7 +1685,7 @@
                                     <div class="status-checks">
                                         <div class="check-count up">
                                             <i class="fas fa-arrow-up"></i>
-                                            <span>${server.totalChecks || 0}</span>
+                                            <span>${server.successfulChecks || 0}</span>
                                         </div>
                                         <div class="check-count down">
                                             <i class="fas fa-arrow-down"></i>
@@ -2157,8 +2202,8 @@
                     emailEnabled: emailEnabled
                 };
                 
-                // Only include API key if user has entered a new one
-                if (apiKeyValue && apiKeyValue.trim() !== '') {
+                // Only include API key if user has entered a new one (not the masked value)
+                if (apiKeyValue && apiKeyValue.trim() !== '' && !apiKeyValue.includes('••••')) {
                     requestBody.sendgridApiKey = apiKeyValue;
                 }
                 
@@ -2292,6 +2337,10 @@
 
         function toggleMonitoring() {
             monitor.toggleMonitoring();
+        }
+
+        function clearAllServerStats() {
+            monitor.clearAllServerStats();
         }
 
         function openRecoveryTool() {
