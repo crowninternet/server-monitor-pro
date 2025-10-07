@@ -32,7 +32,7 @@ print_warning() {
 print_header() {
     echo -e "${PURPLE}========================================${NC}"
     echo -e "${PURPLE}  Uptime Monitor Pro - Git Update${NC}"
-    echo -e "${PURPLE}  Run from Proxmox Host${NC}"
+    echo -e "${PURPLE}  ⚠️  RUN FROM PROXMOX HOST (NOT CONTAINER)${NC}"
     echo -e "${PURPLE}========================================${NC}"
     echo ""
 }

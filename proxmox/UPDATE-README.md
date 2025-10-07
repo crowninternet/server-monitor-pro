@@ -1,8 +1,10 @@
 # Update Uptime Monitor on Proxmox
 
-## Quick Update (3 Commands)
+## ⚠️ IMPORTANT: Run from Proxmox HOST Shell
 
-Run these commands **on your Proxmox host** (not in the container):
+**DO NOT** enter the container. Run these commands directly on your **Proxmox host shell** (via SSH to Proxmox):
+
+## Quick Update (3 Commands)
 
 ```bash
 wget https://raw.githubusercontent.com/crowninternet/server-monitor-pro/master/proxmox/update-from-git.sh
