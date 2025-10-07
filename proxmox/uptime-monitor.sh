@@ -111,11 +111,28 @@ get_next_ctid() {
 find_debian_template() {
     print_status "Checking for Debian templates..."
     
-    # Update template list
+    # First check if template is already downloaded locally
+    local local_templates=$(pveam list $TEMPLATE_STORAGE 2>/dev/null | grep -i "debian.*standard" | grep -v "pre-release")
+    
+    if echo "$local_templates" | grep -q "debian-12-standard"; then
+        TEMPLATE=$(echo "$local_templates" | grep "debian-12-standard" | head -1 | awk '{print $1}')
+        print_status "Found local Debian 12 template: $TEMPLATE"
+        TEMPLATE="$TEMPLATE_STORAGE:vztmpl/$TEMPLATE"
+        print_status "Using template: $TEMPLATE"
+        return 0
+    elif echo "$local_templates" | grep -q "debian-11-standard"; then
+        TEMPLATE=$(echo "$local_templates" | grep "debian-11-standard" | head -1 | awk '{print $1}')
+        print_status "Found local Debian 11 template: $TEMPLATE"
+        TEMPLATE="$TEMPLATE_STORAGE:vztmpl/$TEMPLATE"
+        print_status "Using template: $TEMPLATE"
+        return 0
+    fi
+    
+    # No local template found, check available templates for download
+    print_status "No local template found, checking available downloads..."
     print_status "Updating template list..."
     pveam update >/dev/null 2>&1
     
-    # List available templates
     local available_templates=$(pveam available | grep -i "debian.*standard" | grep -v "pre-release")
     
     # Try to find Debian 12 first, then 11
@@ -130,15 +147,11 @@ find_debian_template() {
         exit 1
     fi
     
-    # Check if template is already downloaded
-    if ! pveam list $TEMPLATE_STORAGE | grep -q "$TEMPLATE"; then
-        print_status "Downloading template $TEMPLATE..."
-        print_status "This may take a few minutes..."
-        pveam download $TEMPLATE_STORAGE $TEMPLATE
-        print_status "Template downloaded successfully"
-    else
-        print_status "Template already available"
-    fi
+    # Download the template
+    print_status "Downloading template $TEMPLATE..."
+    print_status "This may take a few minutes..."
+    pveam download $TEMPLATE_STORAGE $TEMPLATE
+    print_status "Template downloaded successfully"
     
     # Get the full template path
     TEMPLATE="$TEMPLATE_STORAGE:vztmpl/$TEMPLATE"
