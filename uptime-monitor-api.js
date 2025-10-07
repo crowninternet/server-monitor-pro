@@ -13,8 +13,8 @@ const ftp = require('ftp');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Data storage paths - moved to secure directory outside web root
-const SECURE_DATA_DIR = path.join(__dirname, '..', 'secure-data');
+// Data storage paths - using data directory inside application directory
+const SECURE_DATA_DIR = path.join(__dirname, 'data');
 const SERVERS_FILE = path.join(SECURE_DATA_DIR, 'servers.json');
 const CONFIG_FILE = path.join(SECURE_DATA_DIR, 'config.json');
 

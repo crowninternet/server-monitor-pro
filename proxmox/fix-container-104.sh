@@ -76,13 +76,13 @@ pct exec $CONTAINER_ID -- chown -R uptime-monitor:uptime-monitor /opt/uptime-mon
 print_success "Ownership fixed"
 echo ""
 
-# Create secure-data directory if it doesn't exist
-print_info "Step 4b/7: Creating secure-data directory..."
-pct exec $CONTAINER_ID -- bash -c "mkdir -p /opt/secure-data && chown uptime-monitor:uptime-monitor /opt/secure-data && chmod 755 /opt/secure-data"
+# Create data directory inside uptime-monitor directory
+print_info "Step 4b/7: Creating data directory..."
+pct exec $CONTAINER_ID -- bash -c "mkdir -p /opt/uptime-monitor/data && chown uptime-monitor:uptime-monitor /opt/uptime-monitor/data && chmod 755 /opt/uptime-monitor/data"
 if [ $? -eq 0 ]; then
-    print_success "Secure-data directory created"
+    print_success "Data directory created"
 else
-    print_warning "Could not create secure-data directory (may already exist)"
+    print_warning "Could not create data directory (may already exist)"
 fi
 echo ""
 
