@@ -76,6 +76,16 @@ pct exec $CONTAINER_ID -- chown -R uptime-monitor:uptime-monitor /opt/uptime-mon
 print_success "Ownership fixed"
 echo ""
 
+# Create secure-data directory if it doesn't exist
+print_info "Step 4b/7: Creating secure-data directory..."
+pct exec $CONTAINER_ID -- bash -c "mkdir -p /opt/secure-data && chown uptime-monitor:uptime-monitor /opt/secure-data && chmod 755 /opt/secure-data"
+if [ $? -eq 0 ]; then
+    print_success "Secure-data directory created"
+else
+    print_warning "Could not create secure-data directory (may already exist)"
+fi
+echo ""
+
 # Verify monitoring code is present
 print_info "Step 5/7: Verifying server-side monitoring code..."
 if pct exec $CONTAINER_ID -- grep -q "SERVER-SIDE MONITORING ENGINE" /opt/uptime-monitor/uptime-monitor-api.js; then
