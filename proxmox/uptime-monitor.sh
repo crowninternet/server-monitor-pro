@@ -285,12 +285,9 @@ install_system_packages() {
             ca-certificates \
             software-properties-common \
             systemd \
-            journalctl \
             htop \
             nano \
-            unzip \
-            python3 \
-            python3-pip
+            unzip
     "
 }
 
