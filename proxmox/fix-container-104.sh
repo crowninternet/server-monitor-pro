@@ -47,14 +47,26 @@ pct exec $CONTAINER_ID -- bash -c "cd /opt/uptime-monitor && cp uptime-monitor-a
 print_success "Backup created"
 echo ""
 
-# Reset git repository to latest
-print_info "Step 3/7: Resetting git repository to latest..."
-pct exec $CONTAINER_ID -- bash -c "cd /opt/uptime-monitor && git fetch origin && git reset --hard origin/master"
-if [ $? -eq 0 ]; then
-    print_success "Repository reset to latest"
+# Check if git is available
+print_info "Step 3/7: Checking for git..."
+if pct exec $CONTAINER_ID -- command -v git &> /dev/null; then
+    print_info "Git found, using git pull..."
+    pct exec $CONTAINER_ID -- bash -c "cd /opt/uptime-monitor && git fetch origin && git reset --hard origin/master"
+    if [ $? -eq 0 ]; then
+        print_success "Repository updated via git"
+    else
+        print_error "Git update failed"
+        exit 1
+    fi
 else
-    print_error "Git reset failed"
-    exit 1
+    print_warning "Git not found, downloading file directly from GitHub..."
+    pct exec $CONTAINER_ID -- bash -c "cd /opt/uptime-monitor && curl -fsSL https://raw.githubusercontent.com/crowninternet/server-monitor-pro/master/uptime-monitor-api.js -o uptime-monitor-api.js.new && mv uptime-monitor-api.js.new uptime-monitor-api.js"
+    if [ $? -eq 0 ]; then
+        print_success "File downloaded from GitHub"
+    else
+        print_error "Download failed"
+        exit 1
+    fi
 fi
 echo ""
 
