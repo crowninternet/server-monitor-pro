@@ -116,18 +116,14 @@ find_debian_template() {
     local local_templates=$(pveam list $TEMPLATE_STORAGE 2>/dev/null)
     
     if echo "$local_templates" | grep -q "debian-12-standard"; then
-        # pveam list format is: local:vztmpl/debian-12-standard_12.12-1_amd64.tar.zst
-        # We need just the filename part
-        local template_file=$(echo "$local_templates" | grep "debian-12-standard" | grep -v "pre-release" | head -1 | awk '{print $1}' | sed 's/.*vztmpl\///')
-        TEMPLATE="$TEMPLATE_STORAGE:vztmpl/$template_file"
-        print_status "Found local Debian 12 template"
-        print_status "Using template: $TEMPLATE"
+        # pveam list returns format: local:vztmpl/debian-12-standard_12.12-1_amd64.tar.zst
+        # Just use the full path directly without modification
+        TEMPLATE=$(echo "$local_templates" | grep "debian-12-standard" | grep -v "pre-release" | head -1 | awk '{print $1}')
+        print_status "Found and using local Debian 12 template: $TEMPLATE"
         return 0
     elif echo "$local_templates" | grep -q "debian-11-standard"; then
-        local template_file=$(echo "$local_templates" | grep "debian-11-standard" | grep -v "pre-release" | head -1 | awk '{print $1}' | sed 's/.*vztmpl\///')
-        TEMPLATE="$TEMPLATE_STORAGE:vztmpl/$template_file"
-        print_status "Found local Debian 11 template"
-        print_status "Using template: $TEMPLATE"
+        TEMPLATE=$(echo "$local_templates" | grep "debian-11-standard" | grep -v "pre-release" | head -1 | awk '{print $1}')
+        print_status "Found and using local Debian 11 template: $TEMPLATE"
         return 0
     fi
     
