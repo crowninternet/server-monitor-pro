@@ -1,8 +1,32 @@
 # Update from Proxmox Host Shell
 
-## Update Instructions (Run from Proxmox Host)
+## Quick Method: Use the Update Script ⭐
 
-If your uptime monitor is running in an LXC container, use these commands from your **Proxmox host shell**:
+**Easiest way** - download and run the update script on your Proxmox host:
+
+```bash
+# Download the script
+wget https://raw.githubusercontent.com/crowninternet/server-monitor-pro/master/proxmox/update-from-git.sh
+
+# Make it executable
+chmod +x update-from-git.sh
+
+# Run it (it will auto-detect your container)
+./update-from-git.sh
+```
+
+The script will:
+- Auto-detect your uptime monitor container
+- Create a backup
+- Pull latest changes from git
+- Restart the service
+- Show you the monitoring status
+
+---
+
+## Manual Method
+
+If your uptime monitor is running in an LXC container, you can also use these commands from your **Proxmox host shell**:
 
 ### Step 1: Find Your Container ID
 
