@@ -693,6 +693,20 @@ EOF"
     "
 }
 
+# Function to create configuration script
+create_configuration_script() {
+    print_status "Creating configuration script..."
+    
+    pct exec $CTID -- bash -c "curl -fsSL https://raw.githubusercontent.com/crowninternet/server-monitor-pro/main/proxmox/configure-credentials.sh -o /opt/uptime-monitor/configure-credentials.sh"
+    
+    pct exec $CTID -- bash -c "
+        chmod +x /opt/uptime-monitor/configure-credentials.sh
+        chown uptime-monitor:uptime-monitor /opt/uptime-monitor/configure-credentials.sh
+    "
+    
+    print_status "Configuration script created"
+}
+
 # Function to create management script
 create_management_script() {
     print_status "Creating management script..."
@@ -1015,11 +1029,15 @@ show_completion_message() {
     echo -e "   📁 ${BLUE}pct enter $CTID${NC}     - Enter container shell"
     echo -e "   📁 ${BLUE}pct destroy $CTID${NC}   - Destroy container"
     echo ""
-    echo -e "${YELLOW}Application Management (from container):${NC}"
+    echo -e "${YELLOW}Application Management (from host):${NC}"
     echo -e "   📁 ${BLUE}pct exec $CTID -- /opt/uptime-monitor/manage-uptime-monitor.sh start${NC}"
     echo -e "   📁 ${BLUE}pct exec $CTID -- /opt/uptime-monitor/manage-uptime-monitor.sh stop${NC}"
     echo -e "   📁 ${BLUE}pct exec $CTID -- /opt/uptime-monitor/manage-uptime-monitor.sh status${NC}"
     echo -e "   📁 ${BLUE}pct exec $CTID -- /opt/uptime-monitor/manage-uptime-monitor.sh logs${NC}"
+    echo ""
+    echo -e "${YELLOW}Configure Credentials (from host):${NC}"
+    echo -e "   🔐 ${BLUE}pct exec $CTID -- /opt/uptime-monitor/configure-credentials.sh${NC}"
+    echo -e "   ${CYAN}Configure Twilio, SendGrid, and FTP securely${NC}"
     echo ""
     echo -e "${YELLOW}Service status:${NC}"
     if pct exec $CTID -- systemctl is-active --quiet uptime-monitor; then
@@ -1029,11 +1047,10 @@ show_completion_message() {
     fi
     echo ""
     echo -e "${PURPLE}Next steps:${NC}"
-    echo -e "   1. Open ${BLUE}http://$IP:3000${NC} in your browser"
-    echo -e "   2. Add your first server to monitor"
-    echo -e "   3. Configure SMS alerts (Twilio) - optional"
-    echo -e "   4. Configure Email alerts (SendGrid) - optional"
-    echo -e "   5. Set up FTP upload - optional"
+    echo -e "   1. ${BLUE}Configure credentials:${NC} pct exec $CTID -- /opt/uptime-monitor/configure-credentials.sh"
+    echo -e "   2. Open ${BLUE}http://$IP:3000${NC} in your browser"
+    echo -e "   3. Add your first server to monitor"
+    echo -e "   4. Optionally configure alerts via web interface"
     echo ""
     echo -e "${GREEN}Happy monitoring! 🚀${NC}"
 }
@@ -1074,6 +1091,7 @@ main() {
     create_application_files
     install_dependencies
     create_systemd_service
+    create_configuration_script
     create_management_script
     start_service
     
