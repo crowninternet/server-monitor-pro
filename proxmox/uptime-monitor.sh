@@ -2,7 +2,7 @@
 
 # Uptime Monitor Pro - Proxmox LXC Container Installer
 # Compatible with Proxmox VE 9.x
-# Usage: bash -c "$(curl -fsSL https://raw.githubusercontent.com/crowninternet/uptime-monitor/main/proxmox/uptime-monitor.sh)"
+# Usage: bash -c "$(curl -fsSL https://raw.githubusercontent.com/crowninternet/server-monitor-pro/main/proxmox/uptime-monitor.sh)"
 
 set -e
 
@@ -55,7 +55,7 @@ print_header() {
 show_help() {
     echo "Uptime Monitor Pro - Proxmox LXC Container Installer"
     echo ""
-    echo "Usage: bash -c \"\$(curl -fsSL https://raw.githubusercontent.com/crowninternet/uptime-monitor/main/proxmox/uptime-monitor.sh)\""
+    echo "Usage: bash -c \"\$(curl -fsSL https://raw.githubusercontent.com/crowninternet/server-monitor-pro/main/proxmox/uptime-monitor.sh)\""
     echo ""
     echo "Environment Variables:"
     echo "  CTID          - Container ID (default: auto-assign)"
@@ -72,13 +72,13 @@ show_help() {
     echo ""
     echo "Examples:"
     echo "  # Interactive mode"
-    echo "  bash -c \"\$(curl -fsSL https://raw.githubusercontent.com/crowninternet/uptime-monitor/main/proxmox/uptime-monitor.sh)\""
+    echo "  bash -c \"\$(curl -fsSL https://raw.githubusercontent.com/crowninternet/server-monitor-pro/main/proxmox/uptime-monitor.sh)\""
     echo ""
     echo "  # With environment variables"
-    echo "  CTID=100 IP=192.168.1.100 GATEWAY=192.168.1.1 bash -c \"\$(curl -fsSL https://raw.githubusercontent.com/crowninternet/uptime-monitor/main/proxmox/uptime-monitor.sh)\""
+    echo "  CTID=100 IP=192.168.1.100 GATEWAY=192.168.1.1 bash -c \"\$(curl -fsSL https://raw.githubusercontent.com/crowninternet/server-monitor-pro/main/proxmox/uptime-monitor.sh)\""
     echo ""
     echo "  # Full example"
-    echo "  CTID=100 HOSTNAME=monitor IP=192.168.1.100 GATEWAY=192.168.1.1 MEMORY=2048 CORES=4 bash -c \"\$(curl -fsSL https://raw.githubusercontent.com/crowninternet/uptime-monitor/main/proxmox/uptime-monitor.sh)\""
+    echo "  CTID=100 HOSTNAME=monitor IP=192.168.1.100 GATEWAY=192.168.1.1 MEMORY=2048 CORES=4 bash -c \"\$(curl -fsSL https://raw.githubusercontent.com/crowninternet/server-monitor-pro/main/proxmox/uptime-monitor.sh)\""
 }
 
 # Function to check if running on Proxmox host
