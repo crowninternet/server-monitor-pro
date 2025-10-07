@@ -202,6 +202,11 @@ create_install_directory() {
 create_application_files() {
     print_status "Creating application files..."
     
+    # GitHub repository information (for optional downloads)
+    GITHUB_REPO="crowninternet/uptime-monitor"
+    GITHUB_BRANCH="main"
+    GITHUB_BASE_URL="https://raw.githubusercontent.com/${GITHUB_REPO}/${GITHUB_BRANCH}"
+    
     # Create package.json
     cat > "$INSTALL_DIR/package.json" << 'EOF'
 {
@@ -560,8 +565,16 @@ EOF
 </html>
 EOF
 
-    # Create recovery.html
-    cat > "$INSTALL_DIR/recovery.html" << 'EOF'
+    # Download recovery.html from GitHub (full-featured version)
+    print_status "Downloading recovery.html..."
+    if command_exists wget; then
+        wget -q "${GITHUB_BASE_URL}/recovery.html" -O "$INSTALL_DIR/recovery.html"
+    elif command_exists curl; then
+        curl -fsSL "${GITHUB_BASE_URL}/recovery.html" -o "$INSTALL_DIR/recovery.html"
+    else
+        print_warning "Neither wget nor curl available, skipping recovery.html"
+        # Create a placeholder
+        cat > "$INSTALL_DIR/recovery.html" << 'EOF'
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -580,14 +593,18 @@ EOF
     <div class="container">
         <div class="card">
             <h1>🔄 Uptime Monitor Pro - Recovery</h1>
-            <p>This is the recovery page for Uptime Monitor Pro.</p>
-            <p>If you can see this page, the web server is running correctly.</p>
+            <p>This is a placeholder recovery page. To get the full-featured recovery page:</p>
+            <ol>
+                <li>Install wget or curl on this container</li>
+                <li>Run: <code>wget https://raw.githubusercontent.com/crowninternet/uptime-monitor/main/recovery.html -O /opt/uptime-monitor/recovery.html</code></li>
+            </ol>
             <button class="btn" onclick="window.location.href='/'">Go to Main Dashboard</button>
         </div>
     </div>
 </body>
 </html>
 EOF
+    fi
 
     # Create secure data directory
     mkdir -p "$INSTALL_DIR/secure-data"

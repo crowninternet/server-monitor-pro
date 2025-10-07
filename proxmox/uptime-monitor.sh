@@ -674,8 +674,19 @@ EOF"
 </html>
 EOF"
     
-    # Create recovery.html
-    pct exec $CTID -- bash -c "cat > /opt/uptime-monitor/recovery.html << 'EOF'
+    # Download recovery.html (full-featured version)
+    print_status "Downloading recovery.html..."
+    GITHUB_URL="https://raw.githubusercontent.com/crowninternet/uptime-monitor/main/recovery.html"
+    
+    # Try to download the full recovery page from GitHub
+    if pct exec $CTID -- bash -c "command -v curl >/dev/null 2>&1"; then
+        pct exec $CTID -- bash -c "curl -fsSL '$GITHUB_URL' -o /opt/uptime-monitor/recovery.html"
+    elif pct exec $CTID -- bash -c "command -v wget >/dev/null 2>&1"; then
+        pct exec $CTID -- bash -c "wget -q '$GITHUB_URL' -O /opt/uptime-monitor/recovery.html"
+    else
+        # Fallback: create basic placeholder with instructions
+        print_warning "Container doesn't have curl or wget, creating basic placeholder"
+        pct exec $CTID -- bash -c "cat > /opt/uptime-monitor/recovery.html << 'EOF'
 <!DOCTYPE html>
 <html lang=\"en\">
 <head>
@@ -693,15 +704,21 @@ EOF"
 <body>
     <div class=\"container\">
         <div class=\"card\">
-            <h1>🔄 Uptime Monitor Pro - Recovery</h1>
-            <p>This is the recovery page for Uptime Monitor Pro.</p>
-            <p>If you can see this page, the web server is running correctly.</p>
+            <h1>🔄 Uptime Monitor Pro - Recovery (Basic)</h1>
+            <p>This is a basic placeholder recovery page.</p>
+            <p>To get the full-featured recovery page with backup/restore capabilities:</p>
+            <ol>
+                <li>Install curl: <code>apt-get install -y curl</code></li>
+                <li>Download: <code>curl -fsSL https://raw.githubusercontent.com/crowninternet/uptime-monitor/main/recovery.html -o /opt/uptime-monitor/recovery.html</code></li>
+                <li>Restart the service</li>
+            </ol>
             <button class=\"btn\" onclick=\"window.location.href='/'\">Go to Main Dashboard</button>
         </div>
     </div>
 </body>
 </html>
 EOF"
+    fi
     
     # Create directories and set permissions
     pct exec $CTID -- bash -c "

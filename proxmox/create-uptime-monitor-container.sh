@@ -666,8 +666,19 @@ EOF"
 </html>
 EOF"
     
-    # Create recovery.html
-    pct exec $CONTAINER_ID -- bash -c "cat > $INSTALL_DIR/recovery.html << 'EOF'
+    # Download recovery.html (full-featured version)
+    print_status "Downloading recovery.html..."
+    GITHUB_URL="https://raw.githubusercontent.com/crowninternet/uptime-monitor/main/recovery.html"
+    
+    # Try to download the full recovery page from GitHub
+    if pct exec $CONTAINER_ID -- bash -c "command -v curl >/dev/null 2>&1"; then
+        pct exec $CONTAINER_ID -- bash -c "curl -fsSL '$GITHUB_URL' -o $INSTALL_DIR/recovery.html"
+    elif pct exec $CONTAINER_ID -- bash -c "command -v wget >/dev/null 2>&1"; then
+        pct exec $CONTAINER_ID -- bash -c "wget -q '$GITHUB_URL' -O $INSTALL_DIR/recovery.html"
+    else
+        # Fallback: create basic placeholder with instructions
+        print_warning "Container doesn't have curl or wget, creating basic placeholder"
+        pct exec $CONTAINER_ID -- bash -c "cat > $INSTALL_DIR/recovery.html << 'EOF'
 <!DOCTYPE html>
 <html lang=\"en\">
 <head>
@@ -685,15 +696,21 @@ EOF"
 <body>
     <div class=\"container\">
         <div class=\"card\">
-            <h1>🔄 Uptime Monitor Pro - Recovery</h1>
-            <p>This is the recovery page for Uptime Monitor Pro.</p>
-            <p>If you can see this page, the web server is running correctly.</p>
+            <h1>🔄 Uptime Monitor Pro - Recovery (Basic)</h1>
+            <p>This is a basic placeholder recovery page.</p>
+            <p>To get the full-featured recovery page with backup/restore capabilities:</p>
+            <ol>
+                <li>Install curl: <code>apt-get install -y curl</code></li>
+                <li>Download: <code>curl -fsSL https://raw.githubusercontent.com/crowninternet/uptime-monitor/main/recovery.html -o $INSTALL_DIR/recovery.html</code></li>
+                <li>Restart the service</li>
+            </ol>
             <button class=\"btn\" onclick=\"window.location.href='/'\">Go to Main Dashboard</button>
         </div>
     </div>
 </body>
 </html>
 EOF"
+    fi
     
     # Create secure data directory
     pct exec $CONTAINER_ID -- bash -c "

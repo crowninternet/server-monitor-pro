@@ -172,7 +172,7 @@
             try {
                 // Add each server back to the API
                 for (const server of foundServers) {
-                    const response = await fetch('http://localhost:3000/api/servers', {
+                    const response = await fetch('/api/servers', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
@@ -194,7 +194,7 @@
                 resultDiv.innerHTML = `
                     <div class="success">
                         ✅ Successfully restored ${foundServers.length} servers!
-                        <p><a href="http://localhost:3000" target="_blank">Go to Uptime Monitor</a></p>
+                        <p><a href="/" target="_blank">Go to Uptime Monitor</a></p>
                     </div>
                 `;
             } catch (error) {
@@ -218,7 +218,7 @@
 
             try {
                 for (const server of sampleServers) {
-                    const response = await fetch('http://localhost:3000/api/servers', {
+                    const response = await fetch('/api/servers', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
@@ -235,7 +235,7 @@
                 resultDiv.innerHTML = `
                     <div class="success">
                         ✅ Successfully added ${sampleServers.length} sample servers!
-                        <p><a href="http://localhost:3000" target="_blank">Go to Uptime Monitor</a></p>
+                        <p><a href="/" target="_blank">Go to Uptime Monitor</a></p>
                     </div>
                 `;
             } catch (error) {
@@ -252,7 +252,7 @@
             resultDiv.innerHTML = '<p>Preparing backup...</p>';
 
             try {
-                const response = await fetch('http://localhost:3000/api/servers');
+                const response = await fetch('/api/servers');
                 const data = await response.json();
 
                 if (data.success) {
@@ -327,7 +327,7 @@
                 // Restore each server
                 let restoredCount = 0;
                 for (const server of backup.servers) {
-                    const response = await fetch('http://localhost:3000/api/servers', {
+                    const response = await fetch('/api/servers', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
@@ -353,7 +353,7 @@
                         ✅ Backup restored successfully!
                         <p><strong>Restored:</strong> ${restoredCount} out of ${backup.servers.length} servers</p>
                         <p><strong>Backup Date:</strong> ${backup.timestamp ? new Date(backup.timestamp).toLocaleString() : 'Unknown'}</p>
-                        <p><a href="http://localhost:3000" target="_blank">Go to Uptime Monitor</a></p>
+                        <p><a href="/" target="_blank">Go to Uptime Monitor</a></p>
                     </div>
                 `;
 
@@ -375,7 +375,7 @@
             resultDiv.innerHTML = '<p>Loading current servers and syncing localStorage...</p>';
 
             try {
-                const response = await fetch('http://localhost:3000/api/servers');
+                const response = await fetch('/api/servers');
                 const data = await response.json();
 
                 if (data.success && data.servers.length > 0) {
