@@ -25,7 +25,8 @@ DISK_SIZE="8"
 BRIDGE="vmbr0"
 IP=""
 GATEWAY=""
-TEMPLATE="debian-12-standard"
+TEMPLATE=""
+TEMPLATE_STORAGE="local"
 STORAGE="local-lvm"
 UNPRIVILEGED="1"
 ONBOOT="1"
@@ -67,7 +68,7 @@ show_help() {
     echo "  BRIDGE        - Network bridge (default: vmbr0)"
     echo "  IP            - IP address (default: prompt)"
     echo "  GATEWAY       - Gateway (default: prompt)"
-    echo "  TEMPLATE      - Template (default: debian-12-standard)"
+    echo "  TEMPLATE      - Template (default: auto-detect and download)"
     echo "  STORAGE       - Storage (default: local-lvm)"
     echo ""
     echo "Examples:"
@@ -101,6 +102,44 @@ get_next_ctid() {
         ((next_id++))
     done
     CTID=$next_id
+}
+
+# Function to find and download Debian template
+find_debian_template() {
+    print_status "Checking for Debian templates..."
+    
+    # Update template list
+    print_status "Updating template list..."
+    pveam update >/dev/null 2>&1
+    
+    # List available templates
+    local available_templates=$(pveam available | grep -i "debian.*standard" | grep -v "pre-release")
+    
+    # Try to find Debian 12 first, then 11
+    if echo "$available_templates" | grep -q "debian-12-standard"; then
+        TEMPLATE=$(echo "$available_templates" | grep "debian-12-standard" | head -1 | awk '{print $2}')
+        print_status "Found Debian 12 template: $TEMPLATE"
+    elif echo "$available_templates" | grep -q "debian-11-standard"; then
+        TEMPLATE=$(echo "$available_templates" | grep "debian-11-standard" | head -1 | awk '{print $2}')
+        print_status "Found Debian 11 template: $TEMPLATE"
+    else
+        print_error "No Debian standard template found"
+        exit 1
+    fi
+    
+    # Check if template is already downloaded
+    if ! pveam list $TEMPLATE_STORAGE | grep -q "$TEMPLATE"; then
+        print_status "Downloading template $TEMPLATE..."
+        print_status "This may take a few minutes..."
+        pveam download $TEMPLATE_STORAGE $TEMPLATE
+        print_status "Template downloaded successfully"
+    else
+        print_status "Template already available"
+    fi
+    
+    # Get the full template path
+    TEMPLATE="$TEMPLATE_STORAGE:vztmpl/$TEMPLATE"
+    print_status "Using template: $TEMPLATE"
 }
 
 # Function to get network configuration
@@ -1071,6 +1110,11 @@ main() {
     # Get CTID if not set
     if [ -z "$CTID" ]; then
         get_next_ctid
+    fi
+    
+    # Find and download Debian template if not set
+    if [ -z "$TEMPLATE" ]; then
+        find_debian_template
     fi
     
     # Get network configuration
