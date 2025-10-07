@@ -1,0 +1,44 @@
+[Unit]
+Description=Uptime Monitor Pro
+Documentation=https://github.com/crowninternet/uptime-monitor
+After=network.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=uptime-monitor
+Group=uptime-monitor
+WorkingDirectory=/opt/uptime-monitor
+ExecStart=/usr/bin/node /opt/uptime-monitor/uptime-monitor-api.js
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=uptime-monitor
+
+# Container-specific resource limits
+MemoryMax=512M
+CPUQuota=50%
+LimitNOFILE=4096
+LimitNPROC=2048
+
+# Security settings for container environment
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/uptime-monitor
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictRealtime=true
+RestrictSUIDSGID=true
+RestrictNamespaces=true
+
+# Environment variables
+Environment=NODE_ENV=production
+Environment=PORT=3000
+Environment=CONTAINER_MODE=true
+
+[Install]
+WantedBy=multi-user.target
