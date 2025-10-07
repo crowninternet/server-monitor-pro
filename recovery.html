@@ -253,6 +253,11 @@
 
             try {
                 const response = await fetch('/api/servers');
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
                 const data = await response.json();
 
                 if (data.success) {
@@ -289,9 +294,11 @@
                     throw new Error(data.error || 'Failed to fetch servers');
                 }
             } catch (error) {
+                console.error('Backup error:', error);
                 resultDiv.innerHTML = `
                     <div class="error">
                         ❌ Error creating backup: ${error.message}
+                        <br><small>Check browser console for details. Make sure the API is running on this server.</small>
                     </div>
                 `;
             }
@@ -376,9 +383,14 @@
 
             try {
                 const response = await fetch('/api/servers');
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
                 const data = await response.json();
 
-                if (data.success && data.servers.length > 0) {
+                if (data.success && data.servers && data.servers.length > 0) {
                     // Sync localStorage with current API data
                     localStorage.setItem('uptimeServers', JSON.stringify(data.servers));
                     
@@ -400,10 +412,11 @@
                     resultDiv.innerHTML = '<p>No servers currently configured. localStorage cleared.</p>';
                 }
             } catch (error) {
+                console.error('Load servers error:', error);
                 resultDiv.innerHTML = `
                     <div class="error">
                         ❌ Error loading servers: ${error.message}
-                        <br><small>localStorage was not updated due to API error.</small>
+                        <br><small>localStorage was not updated due to API error. Check browser console for details.</small>
                     </div>
                 `;
             }
