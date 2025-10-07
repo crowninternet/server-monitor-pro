@@ -131,13 +131,23 @@ update_container() {
     
     # Pull from git
     print_info "Step 2/5: Pulling latest changes from git..."
-    exec_in_container $container_id "cd /opt/uptime-monitor && sudo -u uptime-monitor git pull origin master"
+    # Try with sudo first, if not available use su
+    exec_in_container $container_id "cd /opt/uptime-monitor && if command -v sudo &> /dev/null; then sudo -u uptime-monitor git pull origin master; else su -c 'git pull origin master' uptime-monitor; fi"
+    
     if [ $? -eq 0 ]; then
         print_success "Git pull successful"
+        # Fix ownership in case git pull ran as root
+        exec_in_container $container_id "chown -R uptime-monitor:uptime-monitor /opt/uptime-monitor"
     else
         print_error "Git pull failed"
-        print_info "You may need to reset the repository first"
-        exit 1
+        print_info "Attempting to reset repository..."
+        exec_in_container $container_id "cd /opt/uptime-monitor && git fetch origin && git reset --hard origin/master && chown -R uptime-monitor:uptime-monitor /opt/uptime-monitor"
+        if [ $? -eq 0 ]; then
+            print_success "Repository reset successful"
+        else
+            print_error "Failed to reset repository"
+            exit 1
+        fi
     fi
     echo ""
     
