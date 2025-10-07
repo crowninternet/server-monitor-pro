@@ -27,23 +27,28 @@ bash -c "$(curl -fsSL https://raw.githubusercontent.com/crowninternet/server-mon
 ```
 
 The script will prompt you for:
-- IP address
-- Gateway
+- Network configuration (DHCP or Static IP)
+- IP address and gateway (if static)
 - Root password
 
-### **Environment Variables Mode**
+### **DHCP Mode (Automatic IP)**
 ```bash
-# Basic usage with environment variables
-CTID=100 IP=192.168.1.100 GATEWAY=192.168.1.1 bash -c "$(curl -fsSL https://raw.githubusercontent.com/crowninternet/server-monitor-pro/master/proxmox/uptime-monitor.sh)"
+# Let your firewall/router assign the IP
+IP=dhcp bash -c "$(curl -fsSL https://raw.githubusercontent.com/crowninternet/server-monitor-pro/master/proxmox/uptime-monitor.sh)"
 ```
 
-### **Full Customization**
+### **Static IP Mode**
 ```bash
-# Advanced usage with all options
+# Manual IP configuration
+IP=192.168.1.100 GATEWAY=192.168.1.1 bash -c "$(curl -fsSL https://raw.githubusercontent.com/crowninternet/server-monitor-pro/master/proxmox/uptime-monitor.sh)"
+```
+
+### **Full Customization with DHCP**
+```bash
+# Advanced usage with DHCP
 CTID=100 \
 HOSTNAME=monitor \
-IP=192.168.1.100 \
-GATEWAY=192.168.1.1 \
+IP=dhcp \
 MEMORY=2048 \
 CORES=4 \
 DISK_SIZE=16 \
@@ -61,9 +66,9 @@ bash -c "$(curl -fsSL https://raw.githubusercontent.com/crowninternet/server-mon
 | `CORES` | CPU cores | `2` |
 | `DISK_SIZE` | Disk size in GB | `8` |
 | `BRIDGE` | Network bridge | `vmbr0` |
-| `IP` | IP address | Prompt |
-| `GATEWAY` | Gateway | Prompt |
-| `TEMPLATE` | Template | `debian-12-standard` |
+| `IP` | IP address or `dhcp` | Prompt for choice |
+| `GATEWAY` | Gateway (required for static) | Prompt if static |
+| `TEMPLATE` | Template | Auto-detect |
 | `STORAGE` | Storage | `local-lvm` |
 
 ## 🌐 After Installation
@@ -72,6 +77,24 @@ Once installed, access your monitoring dashboard at:
 
 - **Web Interface:** `http://<container-ip>:3000`
 - **API Health Check:** `http://<container-ip>:3000/api/health`
+
+### **Finding Your Container IP**
+
+If you used DHCP, find the assigned IP address:
+```bash
+# From Proxmox host
+pct exec <container-id> -- hostname -I
+
+# Or enter the container
+pct enter <container-id>
+ip addr show eth0
+```
+
+### **Making DHCP IP Static**
+
+Two options:
+1. **In your firewall/router:** Reserve the DHCP IP for the container's MAC address
+2. **Inside the container:** Convert to static IP by editing `/etc/network/interfaces`
 
 ## 🛠️ Management Commands
 

@@ -66,20 +66,23 @@ show_help() {
     echo "  CORES         - CPU cores (default: 2)"
     echo "  DISK_SIZE     - Disk size in GB (default: 8)"
     echo "  BRIDGE        - Network bridge (default: vmbr0)"
-    echo "  IP            - IP address (default: prompt)"
-    echo "  GATEWAY       - Gateway (default: prompt)"
+    echo "  IP            - IP address or 'dhcp' (default: prompt)"
+    echo "  GATEWAY       - Gateway (required for static IP)"
     echo "  TEMPLATE      - Template (default: auto-detect and download)"
     echo "  STORAGE       - Storage (default: local-lvm)"
     echo ""
     echo "Examples:"
-    echo "  # Interactive mode"
+    echo "  # Interactive mode (choose DHCP or Static)"
     echo "  bash -c \"\$(curl -fsSL https://raw.githubusercontent.com/crowninternet/server-monitor-pro/master/proxmox/uptime-monitor.sh)\""
     echo ""
-    echo "  # With environment variables"
-    echo "  CTID=100 IP=192.168.1.100 GATEWAY=192.168.1.1 bash -c \"\$(curl -fsSL https://raw.githubusercontent.com/crowninternet/server-monitor-pro/master/proxmox/uptime-monitor.sh)\""
+    echo "  # With DHCP"
+    echo "  IP=dhcp bash -c \"\$(curl -fsSL https://raw.githubusercontent.com/crowninternet/server-monitor-pro/master/proxmox/uptime-monitor.sh)\""
     echo ""
-    echo "  # Full example"
-    echo "  CTID=100 HOSTNAME=monitor IP=192.168.1.100 GATEWAY=192.168.1.1 MEMORY=2048 CORES=4 bash -c \"\$(curl -fsSL https://raw.githubusercontent.com/crowninternet/server-monitor-pro/master/proxmox/uptime-monitor.sh)\""
+    echo "  # With static IP"
+    echo "  IP=192.168.1.100 GATEWAY=192.168.1.1 bash -c \"\$(curl -fsSL https://raw.githubusercontent.com/crowninternet/server-monitor-pro/master/proxmox/uptime-monitor.sh)\""
+    echo ""
+    echo "  # Full example with DHCP"
+    echo "  CTID=100 HOSTNAME=monitor IP=dhcp MEMORY=2048 CORES=4 bash -c \"\$(curl -fsSL https://raw.githubusercontent.com/crowninternet/server-monitor-pro/master/proxmox/uptime-monitor.sh)\""
 }
 
 # Function to check if running on Proxmox host
@@ -147,16 +150,40 @@ get_network_config() {
     if [ -z "$IP" ]; then
         echo ""
         print_status "Network Configuration"
-        read -p "Enter IP address (e.g., 192.168.1.100): " IP
-    fi
-    
-    if [ -z "$GATEWAY" ]; then
-        read -p "Enter gateway (e.g., 192.168.1.1): " GATEWAY
-    fi
-    
-    if [ -z "$IP" ] || [ -z "$GATEWAY" ]; then
-        print_error "IP address and gateway are required"
-        exit 1
+        echo ""
+        echo "Choose network configuration:"
+        echo "1) DHCP (automatic IP assignment)"
+        echo "2) Static IP (manual configuration)"
+        read -p "Enter choice (1 or 2): " -r
+        
+        if [ "$REPLY" = "1" ]; then
+            IP="dhcp"
+            GATEWAY=""
+            print_status "Using DHCP for automatic IP assignment"
+        elif [ "$REPLY" = "2" ]; then
+            read -p "Enter IP address (e.g., 192.168.1.100): " IP
+            read -p "Enter gateway (e.g., 192.168.1.1): " GATEWAY
+            
+            if [ -z "$IP" ] || [ -z "$GATEWAY" ]; then
+                print_error "IP address and gateway are required for static configuration"
+                exit 1
+            fi
+            print_status "Network configuration: $IP/$NETMASK via $GATEWAY on $BRIDGE"
+        else
+            print_error "Invalid choice"
+            exit 1
+        fi
+    elif [ "$IP" = "dhcp" ] || [ "$IP" = "DHCP" ]; then
+        IP="dhcp"
+        GATEWAY=""
+        print_status "Using DHCP for automatic IP assignment"
+    else
+        # Static IP provided via environment variable
+        if [ -z "$GATEWAY" ]; then
+            print_error "Gateway is required when using static IP"
+            exit 1
+        fi
+        print_status "Network configuration: $IP/$NETMASK via $GATEWAY on $BRIDGE"
     fi
 }
 
@@ -186,7 +213,16 @@ create_container() {
     create_cmd="$create_cmd --memory $MEMORY"
     create_cmd="$create_cmd --cores $CORES"
     create_cmd="$create_cmd --rootfs $STORAGE:${DISK_SIZE}"
-    create_cmd="$create_cmd --net0 name=eth0,bridge=$BRIDGE,ip=$IP/24,gw=$GATEWAY"
+    
+    # Configure network - DHCP or Static
+    if [ "$IP" = "dhcp" ]; then
+        create_cmd="$create_cmd --net0 name=eth0,bridge=$BRIDGE,ip=dhcp"
+        print_status "Configuring network with DHCP"
+    else
+        create_cmd="$create_cmd --net0 name=eth0,bridge=$BRIDGE,ip=$IP/24,gw=$GATEWAY"
+        print_status "Configuring network with static IP: $IP"
+    fi
+    
     create_cmd="$create_cmd --password $PASSWORD"
     create_cmd="$create_cmd --unprivileged $UNPRIVILEGED"
     create_cmd="$create_cmd --onboot $ONBOOT"
@@ -1044,6 +1080,16 @@ start_service() {
 
 # Function to show completion message
 show_completion_message() {
+    # Get actual IP address if DHCP was used
+    local actual_ip="$IP"
+    if [ "$IP" = "dhcp" ]; then
+        print_status "Getting DHCP-assigned IP address..."
+        actual_ip=$(pct exec $CTID -- hostname -I | awk '{print $1}')
+        if [ -z "$actual_ip" ]; then
+            actual_ip="DHCP (check with: pct exec $CTID -- hostname -I)"
+        fi
+    fi
+    
     echo ""
     echo -e "${GREEN}================================${NC}"
     echo -e "${GREEN}  Installation Complete! 🎉${NC}"
@@ -1054,11 +1100,15 @@ show_completion_message() {
     echo -e "${YELLOW}Container Information:${NC}"
     echo -e "   🏷️  ${BLUE}Container ID: $CTID${NC}"
     echo -e "   🏷️  ${BLUE}Container Name: $HOSTNAME${NC}"
-    echo -e "   🌐 ${BLUE}IP Address: $IP${NC}"
+    if [ "$IP" = "dhcp" ]; then
+        echo -e "   🌐 ${BLUE}IP Address: $actual_ip (DHCP)${NC}"
+    else
+        echo -e "   🌐 ${BLUE}IP Address: $actual_ip${NC}"
+    fi
     echo -e "   🔧 ${BLUE}Resources: ${MEMORY}MB RAM, $CORES cores, ${DISK_SIZE}GB disk${NC}"
     echo ""
     echo -e "${YELLOW}Access your monitoring dashboard:${NC}"
-    echo -e "   🌐 ${BLUE}http://$IP:3000${NC}"
+    echo -e "   🌐 ${BLUE}http://$actual_ip:3000${NC}"
     echo -e "   🌐 ${BLUE}http://localhost:3000${NC} (from container)"
     echo ""
     echo -e "${YELLOW}Container Management:${NC}"
@@ -1087,9 +1137,14 @@ show_completion_message() {
     echo ""
     echo -e "${PURPLE}Next steps:${NC}"
     echo -e "   1. ${BLUE}Configure credentials:${NC} pct exec $CTID -- /opt/uptime-monitor/configure-credentials.sh"
-    echo -e "   2. Open ${BLUE}http://$IP:3000${NC} in your browser"
+    echo -e "   2. Open ${BLUE}http://$actual_ip:3000${NC} in your browser"
     echo -e "   3. Add your first server to monitor"
     echo -e "   4. Optionally configure alerts via web interface"
+    if [ "$IP" = "dhcp" ]; then
+        echo ""
+        echo -e "${CYAN}💡 Tip: You can make the DHCP IP static in your firewall/router settings${NC}"
+        echo -e "${CYAN}   Or convert to static IP inside container: edit /etc/network/interfaces${NC}"
+    fi
     echo ""
     echo -e "${GREEN}Happy monitoring! 🚀${NC}"
 }
