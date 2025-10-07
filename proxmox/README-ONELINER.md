@@ -5,7 +5,7 @@
 Just like the Proxmox community scripts, install Uptime Monitor Pro with a single command:
 
 ```bash
-bash -c "$(curl -fsSL https://raw.githubusercontent.com/crowninternet/server-monitor-pro/main/proxmox/uptime-monitor.sh)"
+bash -c "$(curl -fsSL https://raw.githubusercontent.com/crowninternet/server-monitor-pro/master/proxmox/uptime-monitor.sh)"
 ```
 
 ## 📋 What This Does
@@ -23,7 +23,7 @@ bash -c "$(curl -fsSL https://raw.githubusercontent.com/crowninternet/server-mon
 ### **Interactive Mode (Default)**
 ```bash
 # Run without parameters for interactive setup
-bash -c "$(curl -fsSL https://raw.githubusercontent.com/crowninternet/server-monitor-pro/main/proxmox/uptime-monitor.sh)"
+bash -c "$(curl -fsSL https://raw.githubusercontent.com/crowninternet/server-monitor-pro/master/proxmox/uptime-monitor.sh)"
 ```
 
 The script will prompt you for:
@@ -34,7 +34,7 @@ The script will prompt you for:
 ### **Environment Variables Mode**
 ```bash
 # Basic usage with environment variables
-CTID=100 IP=192.168.1.100 GATEWAY=192.168.1.1 bash -c "$(curl -fsSL https://raw.githubusercontent.com/crowninternet/server-monitor-pro/main/proxmox/uptime-monitor.sh)"
+CTID=100 IP=192.168.1.100 GATEWAY=192.168.1.1 bash -c "$(curl -fsSL https://raw.githubusercontent.com/crowninternet/server-monitor-pro/master/proxmox/uptime-monitor.sh)"
 ```
 
 ### **Full Customization**
@@ -47,7 +47,7 @@ GATEWAY=192.168.1.1 \
 MEMORY=2048 \
 CORES=4 \
 DISK_SIZE=16 \
-bash -c "$(curl -fsSL https://raw.githubusercontent.com/crowninternet/server-monitor-pro/main/proxmox/uptime-monitor.sh)"
+bash -c "$(curl -fsSL https://raw.githubusercontent.com/crowninternet/server-monitor-pro/master/proxmox/uptime-monitor.sh)"
 ```
 
 ## 🔧 Available Environment Variables
@@ -236,6 +236,6 @@ Your Uptime Monitor Pro is now ready to keep your servers running smoothly! 🚀
 This installer follows the same pattern as other Proxmox community scripts:
 
 - **Uptime Kuma:** `bash -c "$(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/ct/uptimekuma.sh)"`
-- **Uptime Monitor Pro:** `bash -c "$(curl -fsSL https://raw.githubusercontent.com/crowninternet/server-monitor-pro/main/proxmox/uptime-monitor.sh)"`
+- **Uptime Monitor Pro:** `bash -c "$(curl -fsSL https://raw.githubusercontent.com/crowninternet/server-monitor-pro/master/proxmox/uptime-monitor.sh)"`
 
 Both provide the same simple, one-command installation experience!
