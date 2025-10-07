@@ -614,6 +614,10 @@ app.post('/api/servers', (req, res) => {
         servers.push(newServer);
         
         if (writeServers(servers)) {
+            // Start monitoring the new server if not stopped
+            if (!newServer.stopped && typeof startServerMonitoring !== 'undefined') {
+                startServerMonitoring(newServer);
+            }
             res.json({ success: true, server: newServer });
         } else {
             res.status(500).json({ success: false, error: 'Failed to save server' });
@@ -639,6 +643,13 @@ app.put('/api/servers/:id', (req, res) => {
         servers[serverIndex] = { ...servers[serverIndex], ...updates, id, consecutiveFailures: 0, smsAlertSent: false };
         
         if (writeServers(servers)) {
+            // Restart monitoring for this server if monitoring functions exist
+            if (typeof stopServerMonitoring !== 'undefined' && typeof startServerMonitoring !== 'undefined') {
+                stopServerMonitoring(id);
+                if (!servers[serverIndex].stopped) {
+                    startServerMonitoring(servers[serverIndex]);
+                }
+            }
             res.json({ success: true, server: servers[serverIndex] });
         } else {
             res.status(500).json({ success: false, error: 'Failed to update server' });
@@ -660,6 +671,10 @@ app.delete('/api/servers/:id', (req, res) => {
         }
         
         if (writeServers(filteredServers)) {
+            // Stop monitoring for the deleted server
+            if (typeof stopServerMonitoring !== 'undefined') {
+                stopServerMonitoring(id);
+            }
             res.json({ success: true, message: 'Server deleted successfully' });
         } else {
             res.status(500).json({ success: false, error: 'Failed to delete server' });
@@ -966,6 +981,18 @@ app.listen(PORT, () => {
     console.log(`📤 FTP upload endpoint: http://localhost:${PORT}/api/upload-ftp`);
     console.log(`💚 Health check: http://localhost:${PORT}/api/health`);
     
+    // Start server-side monitoring engine
+    console.log('');
+    console.log('======================================');
+    console.log('🔍 INITIALIZING SERVER-SIDE MONITORING');
+    console.log('======================================');
+    setTimeout(() => {
+        startAllMonitoring();
+        console.log('✅ Server-side monitoring is now active!');
+        console.log('✅ Checks will run automatically even when browser is closed');
+        console.log('');
+    }, 2000); // Wait 2 seconds after startup
+    
     // Start automatic FTP upload every 5 minutes
     const config = readConfig();
     if (config.ftpEnabled) {
@@ -1175,4 +1202,304 @@ app.post('/api/test-email', async (req, res) => {
     }
 });
 
+// ============================================
+// SERVER-SIDE MONITORING ENGINE
+// ============================================
+
+// Store monitoring intervals for each server
+const monitoringIntervals = {};
+let monitoringEnabled = true;
+
+// Function to check a server and update its status
+const performServerCheck = async (server) => {
+    if (!server || server.stopped) {
+        return;
+    }
+
+    console.log(`🔍 Checking server: ${server.name} (${server.type})`);
+    const startTime = Date.now();
+    let success = false;
+    let responseTime = 0;
+    let status = 'down';
+
+    try {
+        if (server.type === 'http' || server.type === 'https') {
+            // HTTP/HTTPS check using axios
+            const axios = require('axios');
+            try {
+                const response = await axios.get(server.url, {
+                    timeout: 10000,
+                    validateStatus: () => true
+                });
+                
+                responseTime = Date.now() - startTime;
+                const isCloudflareError = response.status === 502 || response.status === 503 || response.status === 504;
+                const responseText = response.data ? response.data.toString().toLowerCase() : '';
+                const hasBadGatewayText = responseText.includes('bad gateway');
+                const isGatewayError = isCloudflareError || hasBadGatewayText;
+                
+                success = response.status >= 200 && response.status < 300 && !isGatewayError;
+                
+                if (success) {
+                    server.consecutiveFailures = 0;
+                    status = 'up';
+                } else {
+                    server.consecutiveFailures = (server.consecutiveFailures || 0) + 1;
+                    status = server.consecutiveFailures >= 3 ? 'down' : 'warning';
+                }
+            } catch (error) {
+                responseTime = Date.now() - startTime;
+                server.consecutiveFailures = (server.consecutiveFailures || 0) + 1;
+                status = server.consecutiveFailures >= 3 ? 'down' : 'warning';
+                console.error(`Error checking ${server.name}:`, error.message);
+            }
+        } else if (server.type === 'ping') {
+            // Simple ping check (you can enhance this with actual ICMP if needed)
+            const axios = require('axios');
+            try {
+                const hostname = server.url.replace(/^https?:\/\//, '').split('/')[0];
+                const testUrl = `http://${hostname}`;
+                
+                const response = await axios.head(testUrl, {
+                    timeout: 10000,
+                    validateStatus: () => true
+                });
+                
+                responseTime = Date.now() - startTime;
+                success = response.status >= 200 && response.status < 500;
+                status = success ? 'up' : 'down';
+            } catch (error) {
+                responseTime = Date.now() - startTime;
+                success = false;
+                status = 'down';
+            }
+        }
+
+        // Update server data
+        const previousStatus = server.status;
+        server.status = status;
+        server.lastCheck = new Date().toISOString();
+        server.responseTime = responseTime;
+        server.totalChecks = (server.totalChecks || 0) + 1;
+        
+        if (success) {
+            server.successfulChecks = (server.successfulChecks || 0) + 1;
+        }
+        
+        // Update uptime percentage
+        server.uptime = server.totalChecks > 0 
+            ? Math.round((server.successfulChecks / server.totalChecks) * 100) 
+            : 100;
+
+        // Update test history (keep last 15 results)
+        if (!server.testHistory) server.testHistory = [];
+        server.testHistory.push(status);
+        if (server.testHistory.length > 15) {
+            server.testHistory.shift();
+        }
+
+        // Check if we need to send alerts
+        const config = readConfig();
+        
+        // If server just went down (was up or warning, now down)
+        if (status === 'down' && previousStatus !== 'down' && !server.smsAlertSent) {
+            console.log(`🚨 Server ${server.name} is DOWN! Sending alerts...`);
+            
+            // Send SMS alert if enabled
+            if (config.smsEnabled && config.twilioSid && config.twilioToken) {
+                try {
+                    const client = twilio(config.twilioSid, config.twilioToken);
+                    await client.messages.create({
+                        body: `🚨 ALERT: ${server.name} is DOWN!\nURL: ${server.url}\nTime: ${new Date().toLocaleString()}`,
+                        from: config.twilioFrom,
+                        to: config.twilioTo
+                    });
+                    console.log(`✅ SMS alert sent for ${server.name}`);
+                    server.smsAlertSent = true;
+                } catch (error) {
+                    console.error(`❌ Failed to send SMS alert for ${server.name}:`, error.message);
+                }
+            }
+            
+            // Send email alert if enabled
+            if (config.emailEnabled && config.sendgridApiKey) {
+                try {
+                    await sendEmailAlert(
+                        config,
+                        `Server DOWN: ${server.name}`,
+                        `Server ${server.name} is not responding and has been marked as DOWN.`,
+                        server.name,
+                        server.url
+                    );
+                    console.log(`✅ Email alert sent for ${server.name}`);
+                } catch (error) {
+                    console.error(`❌ Failed to send email alert for ${server.name}:`, error.message);
+                }
+            }
+        }
+        
+        // If server recovered (was down, now up)
+        if (status === 'up' && previousStatus === 'down') {
+            console.log(`✅ Server ${server.name} is back UP!`);
+            server.smsAlertSent = false; // Reset alert flag
+            server.consecutiveFailures = 0;
+            
+            // Send recovery notification if enabled
+            if (config.smsEnabled && config.twilioSid && config.twilioToken) {
+                try {
+                    const client = twilio(config.twilioSid, config.twilioToken);
+                    await client.messages.create({
+                        body: `✅ RECOVERY: ${server.name} is back UP!\nURL: ${server.url}\nTime: ${new Date().toLocaleString()}`,
+                        from: config.twilioFrom,
+                        to: config.twilioTo
+                    });
+                    console.log(`✅ Recovery SMS sent for ${server.name}`);
+                } catch (error) {
+                    console.error(`❌ Failed to send recovery SMS for ${server.name}:`, error.message);
+                }
+            }
+            
+            if (config.emailEnabled && config.sendgridApiKey) {
+                try {
+                    await sendEmailAlert(
+                        config,
+                        `Server UP: ${server.name}`,
+                        `Server ${server.name} has recovered and is now responding normally.`,
+                        server.name,
+                        server.url
+                    );
+                    console.log(`✅ Recovery email sent for ${server.name}`);
+                } catch (error) {
+                    console.error(`❌ Failed to send recovery email for ${server.name}:`, error.message);
+                }
+            }
+        }
+
+        // Save updated server data
+        const servers = readServers();
+        const serverIndex = servers.findIndex(s => s.id === server.id);
+        if (serverIndex !== -1) {
+            servers[serverIndex] = server;
+            writeServers(servers);
+            
+            // Trigger FTP upload if enabled and status changed
+            if (config.ftpEnabled && previousStatus !== status) {
+                console.log(`📤 Status changed for ${server.name}, triggering FTP upload...`);
+                try {
+                    await uploadToFTP(config);
+                } catch (error) {
+                    console.error('FTP upload error after status change:', error);
+                }
+            }
+        }
+
+        console.log(`✅ Check complete for ${server.name}: ${status} (${responseTime}ms)`);
+
+    } catch (error) {
+        console.error(`❌ Error performing check for ${server.name}:`, error);
+    }
+};
+
+// Start monitoring a specific server
+const startServerMonitoring = (server) => {
+    if (!server || server.stopped || monitoringIntervals[server.id]) {
+        return;
+    }
+
+    console.log(`▶️  Starting monitoring for ${server.name} (interval: ${server.interval}s)`);
+    
+    // Perform immediate check
+    performServerCheck(server);
+    
+    // Set up interval for recurring checks
+    monitoringIntervals[server.id] = setInterval(() => {
+        performServerCheck(server);
+    }, server.interval * 1000);
+};
+
+// Stop monitoring a specific server
+const stopServerMonitoring = (serverId) => {
+    if (monitoringIntervals[serverId]) {
+        clearInterval(monitoringIntervals[serverId]);
+        delete monitoringIntervals[serverId];
+        console.log(`⏸️  Stopped monitoring for server ID: ${serverId}`);
+    }
+};
+
+// Start monitoring all servers
+const startAllMonitoring = () => {
+    console.log('🚀 Starting server-side monitoring engine...');
+    const servers = readServers();
+    
+    servers.forEach(server => {
+        if (!server.stopped) {
+            startServerMonitoring(server);
+        }
+    });
+    
+    console.log(`✅ Monitoring started for ${Object.keys(monitoringIntervals).length} servers`);
+};
+
+// Stop all monitoring
+const stopAllMonitoring = () => {
+    console.log('⏸️  Stopping all server monitoring...');
+    Object.keys(monitoringIntervals).forEach(serverId => {
+        stopServerMonitoring(serverId);
+    });
+};
+
+// Restart monitoring (useful when servers are added/updated)
+const restartMonitoring = () => {
+    stopAllMonitoring();
+    setTimeout(() => {
+        startAllMonitoring();
+    }, 1000);
+};
+
+// API endpoint to control monitoring
+app.post('/api/monitoring/control', (req, res) => {
+    try {
+        const { action } = req.body;
+        
+        switch (action) {
+            case 'start':
+                startAllMonitoring();
+                res.json({ success: true, message: 'Monitoring started' });
+                break;
+            case 'stop':
+                stopAllMonitoring();
+                res.json({ success: true, message: 'Monitoring stopped' });
+                break;
+            case 'restart':
+                restartMonitoring();
+                res.json({ success: true, message: 'Monitoring restarted' });
+                break;
+            default:
+                res.status(400).json({ success: false, error: 'Invalid action' });
+        }
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// API endpoint to get monitoring status
+app.get('/api/monitoring/status', (req, res) => {
+    try {
+        const activeMonitors = Object.keys(monitoringIntervals).length;
+        const servers = readServers();
+        const totalServers = servers.filter(s => !s.stopped).length;
+        
+        res.json({
+            success: true,
+            enabled: monitoringEnabled,
+            activeMonitors,
+            totalServers,
+            monitoredServerIds: Object.keys(monitoringIntervals)
+        });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// Export for testing
 module.exports = app;
