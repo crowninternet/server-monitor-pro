@@ -75,10 +75,22 @@ echo ""
 print_header "Step 1: Creating LXC Container"
 echo ""
 
+# Find latest Debian 12 template
+print_info "Finding Debian 12 template..."
+DEBIAN_TEMPLATE=$(pveam list local | grep "debian-12-standard" | awk '{print $1}' | head -1)
+
+if [ -z "$DEBIAN_TEMPLATE" ]; then
+    print_error "No Debian 12 template found in local storage"
+    print_info "Download one with: pveam download local debian-12-standard"
+    exit 1
+fi
+
+print_info "Using template: $DEBIAN_TEMPLATE"
+
 # Create container
 print_info "Creating Debian 12 container..."
 pct create $CONTAINER_ID \
-    local:vztmpl/debian-12-standard_12.7-1_amd64.tar.zst \
+    $DEBIAN_TEMPLATE \
     --hostname $HOSTNAME \
     --memory $RAM \
     --rootfs $STORAGE:$DISK_SIZE \
