@@ -151,9 +151,28 @@ pct exec $CONTAINER_ID -- mkdir -p $INSTALL_DIR/data
 
 print_info "Downloading application files..."
 pct exec $CONTAINER_ID -- bash -c "cd $INSTALL_DIR && curl -fsSL https://raw.githubusercontent.com/crowninternet/server-monitor-pro/master/uptime-monitor-api.js -o uptime-monitor-api.js"
+if [ $? -ne 0 ]; then
+    print_error "Failed to download uptime-monitor-api.js"
+    exit 1
+fi
+
 pct exec $CONTAINER_ID -- bash -c "cd $INSTALL_DIR && curl -fsSL https://raw.githubusercontent.com/crowninternet/server-monitor-pro/master/index.html -o index.html"
+if [ $? -ne 0 ]; then
+    print_error "Failed to download index.html"
+    exit 1
+fi
+
 pct exec $CONTAINER_ID -- bash -c "cd $INSTALL_DIR && curl -fsSL https://raw.githubusercontent.com/crowninternet/server-monitor-pro/master/recovery.html -o recovery.html"
+if [ $? -ne 0 ]; then
+    print_error "Failed to download recovery.html"
+    exit 1
+fi
+
 pct exec $CONTAINER_ID -- bash -c "cd $INSTALL_DIR && curl -fsSL https://raw.githubusercontent.com/crowninternet/server-monitor-pro/master/package.json -o package.json"
+if [ $? -ne 0 ]; then
+    print_error "Failed to download package.json"
+    exit 1
+fi
 
 print_success "Files downloaded"
 echo ""
@@ -171,7 +190,12 @@ print_info "Setting permissions..."
 pct exec $CONTAINER_ID -- chown -R $APP_USER:$APP_USER $INSTALL_DIR
 pct exec $CONTAINER_ID -- chmod 755 $INSTALL_DIR
 pct exec $CONTAINER_ID -- chmod 755 $INSTALL_DIR/data
-pct exec $CONTAINER_ID -- chmod 644 $INSTALL_DIR/*.js $INSTALL_DIR/*.html $INSTALL_DIR/*.json
+
+# Set permissions for files that exist
+pct exec $CONTAINER_ID -- bash -c "cd $INSTALL_DIR && [ -f uptime-monitor-api.js ] && chmod 644 uptime-monitor-api.js || true"
+pct exec $CONTAINER_ID -- bash -c "cd $INSTALL_DIR && [ -f index.html ] && chmod 644 index.html || true"
+pct exec $CONTAINER_ID -- bash -c "cd $INSTALL_DIR && [ -f recovery.html ] && chmod 644 recovery.html || true"
+pct exec $CONTAINER_ID -- bash -c "cd $INSTALL_DIR && [ -f package.json ] && chmod 644 package.json || true"
 pct exec $CONTAINER_ID -- chmod 644 $INSTALL_DIR/data/*.json
 
 print_success "Permissions set"
